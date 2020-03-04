@@ -1,3 +1,4 @@
+//usr/bin/env jbang "$0" "$@" ; exit $?
 /*
  * From http://mail.openjdk.java.net/pipermail/graal-dev/2016-June/004434.html
  *
