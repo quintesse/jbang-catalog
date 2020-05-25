@@ -26,7 +26,7 @@ public class kcusers {
             .serverUrl(serverUrl)
             .realm(realmName)
             .grantType(OAuth2Constants.PASSWORD)
-            .clientId("admin-cli")
+            .clientId("test-client")
             .username(userName)
             .password(pwd)
             .build();
