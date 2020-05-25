@@ -1,0 +1,19 @@
+{
+  "aliases": {
+    "jget": {
+      "resource": "jget.java"
+    },
+    "jvmci": {
+      "resource": "jvmci.java"
+    },
+    "httpd": {
+      "resource": "simple_httpd.java"
+    },
+    "sysenv": {
+      "resource": "system_env.java"
+    },
+    "sysprops": {
+      "resource": "system_properties.java"
+    }
+  }
+}
