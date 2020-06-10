@@ -2,6 +2,7 @@
 
 //DEPS info.picocli:picocli:4.3.2
 //DEPS com.google.code.gson:gson:2.8.6
+//DEPS org.yaml:snakeyaml:1.26
 //DEPS com.konghq:unirest-java:3.7.02
 
 import java.io.File;
@@ -30,6 +31,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 
+import org.yaml.snakeyaml.Yaml;
+
 import kong.unirest.GetRequest;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
@@ -38,6 +41,7 @@ import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.IExecutionExceptionHandler;
 import picocli.CommandLine.Option;
@@ -524,19 +528,33 @@ class Print implements Callable<Integer> {
     @Option(names = { "--from", "-f" }, description = "Use indicated result to operate on", defaultValue = "-1")
     private int fromIndex;
 
-    @Option(names = { "--raw" }, description = "Print raw output, don't prettify")
+    @ArgGroup(exclusive = true)
+    Format format;
+
+    @Option(names = { "--raw", "-r" }, description = "Print raw output, don't prettify")
     private boolean raw;
 
     @Override
     public Integer call() throws Exception {
         List<Object> elems = app.elems(fromIndex);
         for (Object obj : elems) {
-            if (!raw && obj instanceof Map) {
-                System.out.println(new JSONObject(Util.asObject(obj)).toString(2));
-            } else if (!raw && obj instanceof Collection) {
-                System.out.println(new JSONArray(Util.asArray(obj)).toString(2));
-            } else if (obj != null) {
-                System.out.println(obj.toString());
+            if (format != null && format.yaml) {
+                Yaml yaml = new Yaml();
+                if (!raw && obj instanceof Map) {
+                    System.out.println(yaml.dump(obj));
+                } else if (!raw && obj instanceof Collection) {
+                    System.out.println(yaml.dump(obj));
+                } else if (obj != null) {
+                    System.out.println(obj.toString());
+                }
+            } else {
+                if (!raw && obj instanceof Map) {
+                    System.out.println(new JSONObject(Util.asObject(obj)).toString(2));
+                } else if (!raw && obj instanceof Collection) {
+                    System.out.println(new JSONArray(Util.asArray(obj)).toString(2));
+                } else if (obj != null) {
+                    System.out.println(obj.toString());
+                }
             }
         }
         return 0;
@@ -545,7 +563,6 @@ class Print implements Callable<Integer> {
 
 @Command(name = "read", mixinStandardHelpOptions = true, description = "Read JSON from file")
 class Read implements Callable<Integer> {
-    private final Gson gson = new Gson();
 
     @ParentCommand
     private rest app;
@@ -553,16 +570,34 @@ class Read implements Callable<Integer> {
     @Parameters(index = "0", description = "File to read, use '-' to read from stdin", arity = "1")
     private String path;
 
+    @ArgGroup(exclusive = true)
+    Format format;
+
     @Override
     public Integer call() throws Exception {
+        Format fmt = Util.determineFormat(format, path);
         if ("-".equals(path)) {
             try (InputStreamReader reader = new InputStreamReader(System.in)) {
-                Object obj = gson.fromJson(reader, Object.class);
+                Object obj;
+                if (fmt.yaml) {
+                    Yaml yaml = new Yaml();
+                    obj = yaml.load(reader);
+                } else {
+                    Gson gson = new Gson();
+                    obj = gson.fromJson(reader, Object.class);
+                }
                 app.pushResult(obj);
             }
         } else {
             try (FileReader reader = new FileReader(path)) {
-                Object obj = gson.fromJson(reader, Object.class);
+                Object obj;
+                if (fmt.yaml) {
+                    Yaml yaml = new Yaml();
+                    obj = yaml.load(reader);
+                } else {
+                    Gson gson = new Gson();
+                    obj = gson.fromJson(reader, Object.class);
+                }
                 app.pushResult(obj);
             }
         }
@@ -671,23 +706,43 @@ class Write implements Callable<Integer> {
     @Option(names = { "--from", "-f" }, description = "Use indicated result to operate on", defaultValue = "-1")
     private int fromIndex;
 
-    @Option(names = { "--raw" }, description = "Write raw output, don't prettify")
+    @ArgGroup(exclusive = true)
+    Format format;
+
+    @Option(names = { "--raw", "-r" }, description = "Write raw output, don't prettify")
     private boolean raw;
 
     @Override
     public Integer call() throws Exception {
-        GsonBuilder builder = new GsonBuilder();
-        if (!raw) {
-            builder.setPrettyPrinting();
-        }
-        Gson gson = builder.create();
+        Format fmt = Util.determineFormat(format, path);
+        if (fmt.yaml) {
+            Yaml yaml = new Yaml();
+            List<Object> elems = app.elems(fromIndex);
+            try (FileWriter writer = new FileWriter(path)) {
+                elems.forEach(elem -> yaml.dump(elem, writer));
+            }
+        } else {
+            GsonBuilder builder = new GsonBuilder();
+            if (!raw) {
+                builder.setPrettyPrinting();
+            }
+            Gson gson = builder.create();
 
-        List<Object> elems = app.elems(fromIndex);
-        try (FileWriter writer = new FileWriter(path)) {
-            elems.forEach(elem -> gson.toJson(elem, writer));
+            List<Object> elems = app.elems(fromIndex);
+            try (FileWriter writer = new FileWriter(path)) {
+                elems.forEach(elem -> gson.toJson(elem, writer));
+            }
         }
         return 0;
     }
+}
+
+class Format {
+    @Option(names = { "--json" }, description = "Set JSON format")
+    boolean json;
+
+    @Option(names = { "--yaml" }, description = "Set YAML format")
+    boolean yaml;
 }
 
 class Pair<U,V> {
@@ -715,6 +770,17 @@ class Util {
 
     public static Map<String, Object> newObject() {
         return new HashMap<>();
+    }
+
+    public static Format determineFormat(Format format, String path) {
+        if (format != null) {
+            return format;
+        } else {
+            Format fmt = new Format();
+            fmt.json = path.endsWith(".json");
+            fmt.yaml = path.endsWith(".yaml") || path.endsWith(".yml");
+            return fmt;
+        }
     }
 
     public static Map<String, Object> newObject(Map<String, Object> map) {
