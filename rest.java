@@ -102,7 +102,13 @@ public class rest {
         return resultsStack.peek();
     }
 
-    boolean verbose;
+    boolean isVerbose() {
+        return isVerbose(0);
+    }
+
+    boolean isVerbose(int level) {
+        return verboses != null && verboses.length > level;
+    }
 
     List<Object> elems(int index) {
         int idx = index >= 0 ? resultsStack.size() - index - 1 : -index - 1;
@@ -181,26 +187,26 @@ public class rest {
     }
 
     void logApiRequest(String action, String api, Object body) {
-        if (verbose) {
+        if (isVerbose()) {
             String url = getApiUrl(api);
             System.err.println(action + " " + url);
-            if (verboses != null && verboses.length > 1 && body != null) {
+            if (isVerbose(1) && body != null) {
                 System.err.println("Body: " + body);
             }
         }
     }
 
     void logApiResult(HttpResponse<JsonNode> res) {
-        if (verbose) {
+        if (isVerbose()) {
             System.err.println("Response: " + Util.status(res) + " " + Util.statusText(res));
-            if (verboses != null && verboses.length > 2) {
+            if (isVerbose(2)) {
                 System.err.println("Result: " + res.getBody().toPrettyString());
             }
         }
     }
 
     void logApiResult() {
-        if (verbose) {
+        if (isVerbose()) {
             System.err.println("Response: NONE (Dry Run)");
         }
     }
@@ -209,12 +215,12 @@ public class rest {
         boolean result = patterns.stream().anyMatch(p -> {
             List<Object> values = Util.select(entry, p.first).collect(Collectors.toList());
             boolean res = values.stream().anyMatch(value -> p.second.matcher(value.toString()).find());
-            if (verboses != null && verboses.length > 2) {
+            if (isVerbose(2)) {
                 System.err.println("match: " + values + " ~ " + p.second + " = " + res);
             }
             return res;
         });
-        if (verboses != null && verboses.length > 2) {
+        if (isVerbose(2)) {
             System.err.println("final match result: " + result);
         }
         return result;
@@ -230,8 +236,6 @@ public class rest {
     }
 
     private int executionStrategy(ParseResult parseResult) {
-        verbose = verboses != null && verboses.length > 0;
-
         if (Config.configFile.isFile()) {
             Gson gson = new Gson();
             try (JsonReader reader = new JsonReader(new FileReader(Config.configFile))) {
@@ -268,7 +272,7 @@ public class rest {
     class ExecHandler implements IExecutionExceptionHandler {
         @Override
         public int handleExecutionException(Exception ex, CommandLine cmd, ParseResult parse) throws Exception {
-            if (verbose) {
+            if (isVerbose()) {
                 cmd.getErr().print("ERROR: ");
                 ex.printStackTrace(cmd.getErr());
             } else {
@@ -547,11 +551,23 @@ class Filter implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        if (app.isVerbose(1)) {
+            System.err.println("Filtering on:");
+            for (String c : conditions) {
+                System.err.println("   " + c);
+            }
+        }
         List<Pair<String, Pattern>> patterns = Arrays.stream(conditions)
             .map(test -> test.split("=", 2))
             .filter(test -> test.length == 2)
             .map(pop -> new Pair<String, Pattern>(pop[0], Pattern.compile(pop[1])))
             .collect(Collectors.toList());
+        if (app.isVerbose(2)) {
+            System.err.println("Filtering on (parsed):");
+            patterns.stream().forEach(p -> {
+                System.err.println("   " + p.first + " = " + p.second);
+            });
+        }
         List<Object> elems = app.elems(fromIndex);
         app.pushResults(elems.stream()
             .filter(elem -> app.match(elem, patterns))
