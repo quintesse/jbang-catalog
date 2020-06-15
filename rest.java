@@ -215,17 +215,18 @@ public class rest {
 
         Gson gson = new Gson();
         File file = new File(System.getProperty("user.home"), ".restcfg");
-        try (JsonReader reader = new JsonReader(new FileReader(file))) {
-            appConfig = gson.fromJson(reader, AppConfig.class);
-        } catch (IOException ex) {
-            System.err.println("Error reading configuration file. Ignoring. (" + ex.getMessage() + ")");
-        }
-
-        if (appConfig != null) {
-            String srv = config != null ? config : appConfig.defaultServer;
-            if (srv != null) {
-                if (appConfig.servers != null) {
-                    activeServer = appConfig.servers.get(srv);
+        if (file.isFile()) {
+            try (JsonReader reader = new JsonReader(new FileReader(file))) {
+                appConfig = gson.fromJson(reader, AppConfig.class);
+            } catch (IOException ex) {
+                System.err.println("Error reading configuration file. Ignoring. (" + ex.getMessage() + ")");
+            }
+            if (appConfig != null) {
+                String srv = config != null ? config : appConfig.defaultServer;
+                if (srv != null) {
+                    if (appConfig.servers != null) {
+                        activeServer = appConfig.servers.get(srv);
+                    }
                 }
             }
         }
