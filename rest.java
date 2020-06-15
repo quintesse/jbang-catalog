@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
@@ -30,6 +31,7 @@ import java.util.stream.Stream;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -44,7 +46,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.IExecutionExceptionHandler;
-import picocli.CommandLine.MissingParameterException;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
@@ -93,7 +94,8 @@ public class rest {
 
     Server activeServer = new Server();
 
-    ArrayDeque<List<Object>> resultsStack = new ArrayDeque<>(Collections.singleton(Collections.singletonList(Util.newObject())));
+    ArrayDeque<List<Object>> resultsStack = new ArrayDeque<>(
+            Collections.singleton(Collections.singletonList(Util.newObject())));
 
     List<Object> results() {
         return resultsStack.peek();
@@ -120,7 +122,8 @@ public class rest {
 
     String getApiUrl(String api) {
         if (activeServer.url == null) {
-            throw new IllegalArgumentException("Missing API URL. Either specify it on the command line or in the configuration file.");
+            throw new IllegalArgumentException(
+                    "Missing API URL. Either specify it on the command line or in the configuration file.");
         }
         return activeServer.url + api;
     }
@@ -138,7 +141,7 @@ public class rest {
         HttpResponse<JsonNode> res = req.asJson();
 
         logApiResult(res);
-        
+
         return res;
     }
 
@@ -155,7 +158,7 @@ public class rest {
         HttpResponse<JsonNode> res = req.asJson();
 
         logApiResult(res);
-        
+
         return res;
     }
 
@@ -172,7 +175,7 @@ public class rest {
         HttpResponse<JsonNode> res = req.asJson();
 
         logApiResult(res);
-        
+
         return res;
     }
 
@@ -213,10 +216,9 @@ public class rest {
     private int executionStrategy(ParseResult parseResult) {
         verbose = verboses != null && verboses.length > 0;
 
-        Gson gson = new Gson();
-        File file = new File(System.getProperty("user.home"), ".restcfg");
-        if (file.isFile()) {
-            try (JsonReader reader = new JsonReader(new FileReader(file))) {
+        if (Config.configFile.isFile()) {
+            Gson gson = new Gson();
+            try (JsonReader reader = new JsonReader(new FileReader(Config.configFile))) {
                 appConfig = gson.fromJson(reader, AppConfig.class);
             } catch (IOException ex) {
                 System.err.println("Error reading configuration file. Ignoring. (" + ex.getMessage() + ")");
@@ -231,7 +233,7 @@ public class rest {
             }
         }
 
-        boolean insec = insecure != null ? insecure : activeServer.insecure;
+        boolean insec = insecure != null ? insecure : activeServer.insecure == Boolean.TRUE;
         Unirest.config().verifySsl(!insec);
 
         String usr = user != null ? user : activeServer.user;
@@ -256,10 +258,131 @@ public class rest {
             } else {
                 cmd.getErr().println("ERROR: " + ex.toString());
             }
-            return cmd.getExitCodeExceptionMapper() != null
-                ? cmd.getExitCodeExceptionMapper().getExitCode(ex)
-                : cmd.getCommandSpec().exitCodeOnExecutionException();
+            return cmd.getExitCodeExceptionMapper() != null ? cmd.getExitCodeExceptionMapper().getExitCode(ex)
+                    : cmd.getCommandSpec().exitCodeOnExecutionException();
         }
+    }
+}
+
+@Command(name = "config", mixinStandardHelpOptions = true, description = "Configuration management", subcommands = {
+    ConfigDelete.class,
+    ConfigList.class,
+    ConfigSave.class,
+    ConfigUse.class
+})
+class Config {
+    @ParentCommand
+    protected rest app;
+
+    final static File configFile = new File(System.getProperty("user.home"), ".restcfg");
+}
+
+abstract class BaseConfigCmd implements Callable<Integer> {
+    @ParentCommand
+    protected Config cfg;
+
+    @Parameters(index = "0", description = "Configuration name", arity = "1")
+    protected String name;
+
+    protected void saveConfig(AppConfig appConfig) throws IOException {
+        Gson gson = new Gson();
+        try (JsonWriter writer = new JsonWriter(new FileWriter(Config.configFile))) {
+            gson.toJson(appConfig, AppConfig.class, writer);
+        }
+    }
+}
+
+@Command(name = "delete", mixinStandardHelpOptions = true, description = "Delete configuration")
+class ConfigDelete extends BaseConfigCmd {
+    @Override
+    public Integer call() throws Exception {
+        AppConfig ac = cfg.app.appConfig;
+        if (ac == null || !ac.servers.containsKey(name)) {
+            throw new IllegalArgumentException("No configuration with that name exists");
+        }
+        ac.servers.remove(name);
+        if (name.equals(ac.defaultServer)) {
+            if (ac.servers.isEmpty()) {
+                ac.defaultServer = null;
+            } else {
+                // Just get any name from the list of servers
+                ac.defaultServer = ac.servers.keySet().iterator().next();
+            }
+        }
+        saveConfig(ac);
+        return 0;
+    }
+}
+
+@Command(name = "list", mixinStandardHelpOptions = true, description = "List configurations")
+class ConfigList implements Callable<Integer> {
+    @ParentCommand
+    protected Config cfg;
+
+    @Override
+    public Integer call() throws Exception {
+        AppConfig ac = cfg.app.appConfig;
+        if (ac != null) {
+            boolean first = true;
+            for (Entry<String, Server> e : ac.servers.entrySet()) {
+                if (!first) {
+                    System.out.println();
+                }
+                System.out.print("Name    : " + e.getKey());
+                if (e.getKey().equals(ac.defaultServer)) {
+                    System.out.print(" [active]");
+                }
+                System.out.println();
+                System.out.println("URL     : " + e.getValue().url);
+                if (e.getValue().insecure != null) {
+                    System.out.println("Insecure: " + e.getValue().insecure);
+                }
+                first = false;
+            }
+        }
+        return 0;
+    }
+}
+
+@Command(name = "save", mixinStandardHelpOptions = true, description = "Save configuration")
+class ConfigSave extends BaseConfigCmd {
+    @Override
+    public Integer call() throws Exception {
+        // A bit of a hack to force argument validation
+        cfg.app.getApiUrl("");
+
+        AppConfig ac = cfg.app.appConfig;
+        if (ac == null) {
+            cfg.app.appConfig = ac = new AppConfig();
+        }
+        if (ac.servers == null) {
+            ac.servers = new HashMap<>();
+        }
+        Server srv = new Server();
+        srv.url = cfg.app.apiUrl;
+        srv.user = cfg.app.user;
+        srv.password = cfg.app.password;
+        srv.insecure = cfg.app.insecure;
+        ac.servers.put(name, srv);
+        if (ac.defaultServer == null) {
+            ac.defaultServer = name;
+        }
+        saveConfig(ac);
+        return 0;
+    }
+}
+
+@Command(name = "use", mixinStandardHelpOptions = true, description = "Set active configuration")
+class ConfigUse extends BaseConfigCmd {
+    @Override
+    public Integer call() throws Exception {
+        AppConfig ac = cfg.app.appConfig;
+        if (ac == null || !ac.servers.containsKey(name)) {
+            throw new IllegalArgumentException("No configuration with that name exists");
+        }
+        ac.defaultServer = name;
+        saveConfig(ac);
+        return 0;
     }
 }
 
@@ -762,7 +885,7 @@ class Server {
     String url;
     String user;
     String password;
-    boolean insecure;
+    Boolean insecure;
 }
 
 class AppConfig {
