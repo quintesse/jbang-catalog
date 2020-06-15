@@ -551,23 +551,11 @@ class Filter implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        if (app.isVerbose(1)) {
-            System.err.println("Filtering on:");
-            for (String c : conditions) {
-                System.err.println("   " + c);
-            }
-        }
         List<Pair<String, Pattern>> patterns = Arrays.stream(conditions)
             .map(test -> test.split("=", 2))
             .filter(test -> test.length == 2)
             .map(pop -> new Pair<String, Pattern>(pop[0], Pattern.compile(pop[1])))
             .collect(Collectors.toList());
-        if (app.isVerbose(2)) {
-            System.err.println("Filtering on (parsed):");
-            patterns.stream().forEach(p -> {
-                System.err.println("   " + p.first + " = " + p.second);
-            });
-        }
         List<Object> elems = app.elems(fromIndex);
         app.pushResults(elems.stream()
             .filter(elem -> app.match(elem, patterns))
