@@ -44,6 +44,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.IExecutionExceptionHandler;
+import picocli.CommandLine.MissingParameterException;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
@@ -117,8 +118,15 @@ public class rest {
         resultsStack.push(obj);
     }
 
+    String getApiUrl(String api) {
+        if (activeServer.url == null) {
+            throw new IllegalArgumentException("Missing API URL. Either specify it on the command line or in the configuration file.");
+        }
+        return activeServer.url + api;
+    }
+
     HttpResponse<JsonNode> apiDelete(String api, Object body) {
-        String url = activeServer.url + api;
+        String url = getApiUrl(api);
 
         logApiRequest("DELETE", api, body);
 
@@ -135,7 +143,7 @@ public class rest {
     }
 
     HttpResponse<JsonNode> apiGet(String api) {
-        String url = activeServer.url + api;
+        String url = getApiUrl(api);
 
         logApiRequest("GET", api, null);
 
@@ -152,7 +160,7 @@ public class rest {
     }
 
     HttpResponse<JsonNode> apiPost(String api, Object body) {
-        String url = activeServer.url + api;
+        String url = getApiUrl(api);
 
         logApiRequest("POST", api, body);
 
@@ -170,7 +178,7 @@ public class rest {
 
     void logApiRequest(String action, String api, Object body) {
         if (verbose) {
-            String url = activeServer.url + api;
+            String url = getApiUrl(api);
             System.err.println(action + " " + url);
             if (verboses != null && verboses.length > 1 && body != null) {
                 System.err.println("Body: " + body);
@@ -234,11 +242,6 @@ public class rest {
         srv.user = usr;
         srv.password = pwd;
         activeServer = srv;
-
-        if (activeServer.url == null) {
-            System.err.println("Error: missing API URL");
-            System.exit(1);
-        }
 
         return new CommandLine.RunLast().execute(parseResult);
     }
