@@ -205,6 +205,21 @@ public class rest {
         }
     }
 
+    boolean match(Object entry, List<Pair<String, Pattern>> patterns) {
+        boolean result = patterns.stream().anyMatch(p -> {
+            List<Object> values = Util.select(entry, p.first).collect(Collectors.toList());
+            boolean res = values.stream().anyMatch(value -> p.second.matcher(value.toString()).find());
+            if (verboses != null && verboses.length > 2) {
+                System.err.println("match: " + values + " ~ " + p.second + " = " + res);
+            }
+            return res;
+        });
+        if (verboses != null && verboses.length > 2) {
+            System.err.println("final match result: " + result);
+        }
+        return result;
+    }
+
     public static void main(String... args) {
         rest app = new rest();
         int exitCode = new CommandLine(app)
@@ -539,7 +554,7 @@ class Filter implements Callable<Integer> {
             .collect(Collectors.toList());
         List<Object> elems = app.elems(fromIndex);
         app.pushResults(elems.stream()
-            .filter(elem -> Util.match(elem, patterns))
+            .filter(elem -> app.match(elem, patterns))
             .collect(Collectors.toList()));
         return 0;
     }
@@ -1025,13 +1040,6 @@ class Util {
                 obj.put(path, value);
             }
         }
-    }
-
-    static boolean match(Object entry, List<Pair<String, Pattern>> patterns) {
-        return patterns.stream().anyMatch(p -> {
-            List<Object> values = select(entry, p.first).collect(Collectors.toList());
-            return values.stream().anyMatch(value -> p.second.matcher(value.toString()).find());
-        });
     }
 
     private static final Pattern varPattern = Pattern.compile("\\{([^\\}]*)\\}");
