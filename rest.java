@@ -56,6 +56,7 @@ import picocli.CommandLine.ParseResult;
     version = "rest 0.1",
     description = "REST API access commands",
     subcommands = {
+        Config.class,
         Create.class,
         Delete.class,
         Get.class,
