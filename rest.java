@@ -631,7 +631,7 @@ class Select implements Callable<Integer> {
     }
 }
 
-@Command(name = "to-array", mixinStandardHelpOptions = true, description = "Set previous result as active")
+@Command(name = "to-array", mixinStandardHelpOptions = true, description = "Turn previous results into a single JSON array")
 class ToArray implements Callable<Integer> {
 
     @ParentCommand
@@ -656,7 +656,7 @@ class ToArray implements Callable<Integer> {
     }
 }
 
-@Command(name = "to-object", mixinStandardHelpOptions = true, description = "Set previous result as active")
+@Command(name = "to-object", mixinStandardHelpOptions = true, description = "Turn previous results into a single JSON object")
 class ToObject implements Callable<Integer> {
 
     @ParentCommand
