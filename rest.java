@@ -552,7 +552,7 @@ class Filter implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         List<Pair<String, Pattern>> patterns = Arrays.stream(conditions)
-            .map(test -> test.split("=", 2))
+            .map(test -> test.split("[=:]", 2))
             .filter(test -> test.length == 2)
             .map(pop -> new Pair<String, Pattern>(pop[0], Pattern.compile(pop[1])))
             .collect(Collectors.toList());
