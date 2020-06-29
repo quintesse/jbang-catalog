@@ -1,19 +1,19 @@
 {
   "aliases": {
     "jget": {
-      "resource": "jget.java"
+      "scriptRef": "jget.java"
     },
     "jvmci": {
-      "resource": "jvmci.java"
+      "scriptRef": "jvmci.java"
     },
     "httpd": {
-      "resource": "simple_httpd.java"
+      "scriptRef": "simple_httpd.java"
     },
     "sysenv": {
-      "resource": "system_env.java"
+      "scriptRef": "system_env.java"
     },
     "sysprops": {
-      "resource": "system_properties.java"
+      "scriptRef": "system_properties.java"
     }
   }
 }
