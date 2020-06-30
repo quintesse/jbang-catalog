@@ -15,5 +15,6 @@
     "sysprops": {
       "scriptRef": "system_properties.java"
     }
-  }
+  },
+  "description": "Quintesse\'s list of useful JBang scripts"
 }
