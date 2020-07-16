@@ -1,19 +1,28 @@
 {
   "aliases": {
+    "echo": {
+      "scriptRef": "echo.java",
+      "description": "Just prints out its arguments"
+    },
     "jget": {
-      "scriptRef": "jget.java"
+      "scriptRef": "jget.java",
+      "description": "Like a simplistic wget but written in Java"
     },
     "jvmci": {
-      "scriptRef": "jvmci.java"
+      "scriptRef": "jvmci.java",
+      "description": "Checks if JVMCI is enabled"
     },
     "httpd": {
-      "scriptRef": "simple_httpd.java"
+      "scriptRef": "simple_httpd.java",
+      "description": "Starts a simple HTTP server on the files in the current directory"
     },
     "sysenv": {
-      "scriptRef": "system_env.java"
+      "scriptRef": "system_env.java",
+      "description": "Prints out Java\'s System environment"
     },
     "sysprops": {
-      "scriptRef": "system_properties.java"
+      "scriptRef": "system_properties.java",
+      "description": "Prints out Java\'s System properties"
     }
   },
   "description": "Quintesse\'s list of useful JBang scripts"
