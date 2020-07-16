@@ -1,4 +1,5 @@
 //usr/bin/env jbang "$0" "$@" ; exit $?
+//JAVA_VERSION 14+
 
 public class switch_expr {
 
