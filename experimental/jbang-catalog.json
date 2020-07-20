@@ -1,0 +1,32 @@
+{
+  "aliases": {
+    "imap": {
+      "script-ref": "imap.java"
+    },
+    "picocli-codegen": {
+      "script-ref": "picocli-codegen.java"
+    },
+    "jfrdump": {
+      "script-ref": "jfrdump.java"
+    },
+    "kcdel": {
+      "script-ref": "kcdel.java"
+    },
+    "kcusers": {
+      "script-ref": "kcusers.java"
+    },
+    "memmap": {
+      "script-ref": "memmap.java"
+    },
+    "pmatch_instanceof": {
+      "script-ref": "pmatch_instanceof.java"
+    },
+    "switch_expr": {
+      "script-ref": "switch_expr.java"
+    },
+    "text_block": {
+      "script-ref": "text_block.java"
+    }
+  },
+  "description": "Quintesse\u0027s experimental Jbang scripts"
+}
