@@ -91,7 +91,7 @@ class JfrDump implements Callable<Integer> {
                     mem = acquire(eventStart, EVENT_HEADER_SIZE);
                     long eventSize = decode128(mem);
                     if (eventSize < 0 || eventStart + eventSize > chunkEnd) {
-                        System.out.println(String.format("Invalid event size: %d", eventSize));
+                        System.out.println(String.format("Invalid event size: %d at @%08x", eventSize, eventStart));
                         break;
                     }
                     long eventType = decode128(mem);
