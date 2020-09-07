@@ -4,6 +4,10 @@
       "script-ref": "echo.java",
       "description": "Just prints out its arguments"
     },
+    "hello": {
+      "script-ref": "hello.java",
+      "description": "Our perennial demo friend"
+    },
     "jget": {
       "script-ref": "jget.java",
       "description": "Like a simplistic wget but written in Java"
