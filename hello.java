@@ -1,4 +1,4 @@
-//usr/bin/env jbang "$0" "$@" ; exit $?
+///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS com.github.lalyos:jfiglet:0.0.8
 
 import com.github.lalyos.jfiglet.FigletFont;

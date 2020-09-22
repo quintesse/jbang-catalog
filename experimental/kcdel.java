@@ -1,4 +1,4 @@
-//usr/bin/env jbang "$0" "$@" ; exit $?
+///usr/bin/env jbang "$0" "$@" ; exit $?
 
 /*
  * Simplistic and probably very dangerous script to delete all users from a KeyCloak instance.

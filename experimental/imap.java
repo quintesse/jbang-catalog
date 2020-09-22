@@ -1,4 +1,4 @@
-//usr/bin/env jbang "$0" "$@" ; exit $?
+///usr/bin/env jbang "$0" "$@" ; exit $?
 
 //DEPS info.picocli:picocli:4.2.0
 //DEPS com.sun.mail:jakarta.mail:1.6.5
