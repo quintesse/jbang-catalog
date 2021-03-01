@@ -26,6 +26,9 @@
     },
     "text_block": {
       "script-ref": "text_block.java"
+    },
+    "telegram": {
+      "script-ref": "telegram.java"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
