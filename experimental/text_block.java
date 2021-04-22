@@ -1,7 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//JAVA 14+
-//JAVAC_OPTIONS --enable-preview -source 14
-//JAVA_OPTIONS --enable-preview
+//JAVA 15+
 
 public class text_block {
 
