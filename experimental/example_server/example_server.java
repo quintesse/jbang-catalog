@@ -1,4 +1,6 @@
-//usr/bin/env jbang "$0" "$@" ; exit $?
+///usr/bin/env jbang "$0" "$@" ; exit $?
+
+//JAVA 14+
 
 //DEPS com.sparkjava:spark-core:2.9.1
 //DEPS com.google.code.gson:gson:2.8.6
@@ -7,18 +9,21 @@
 //DEPS org.apache.commons:commons-compress:1.20
 //DEPS io.fabric8:maven-model-helper:14
 
+//FILES META-INF/services/ZipEntryFilter=services.txt
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-//import java.util.ServiceLoader;
-//import java.util.stream.Collectors;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import kong.unirest.GetRequest;
 import kong.unirest.HttpResponse;
@@ -34,9 +39,10 @@ import io.fabric8.maven.Maven;
 import spark.Request;
 import spark.Spark;
 
-public class example_server {
-    private final List<Example> examples = retrieveExamples();
-    private final List<ZipEntryFilter> filters = retrieveFilters();
+public class example_server extends AbstractFilefilter {
+    private static final Metadata metadata = retrieveMetadata();
+    private static final List<Example> examples = retrieveExamples();
+    private static final List<ZipEntryFilter> filters = retrieveFilters();
 
     public static void main(String args[]) {
         new example_server().run();
@@ -44,6 +50,16 @@ public class example_server {
 
     void run() {
         Spark.port(8080);
+
+        Spark.get("/missions", (req, res) -> {
+            System.out.println("Missions list requested");
+            return (new Gson()).toJson(metadata.missions);
+        });
+
+        Spark.get("/runtimes", (req, res) -> {
+            System.out.println("Runtimes list requested");
+            return (new Gson()).toJson(metadata.runtimes);
+        });
 
         Spark.get("/info", (req, res) -> {
             var ex = getExample(req);
@@ -162,27 +178,55 @@ public class example_server {
         }
     }
 
+    private static Metadata retrieveMetadata() {
+        String url = "https://raw.githubusercontent.com/fabric8-launcher/launcher-booster-catalog/master/metadata.json";
+        return retrieveObjects(Metadata.class, url);
+    }
+
     private static List<Example> retrieveExamples() {
         String url = "https://raw.githubusercontent.com/fabric8-launcher/launcher-booster-catalog/master/catalog.json";
+        return Arrays.asList((Example[])retrieveObjects(Example.class.arrayType(), url));
+    }
+
+    private static <T> T retrieveObjects(Class<T> klass, String url) {
         int status;
         GetRequest req = Unirest.get(url);
-        HttpResponse<Example[]> response = req.asObject(Example[].class);
+        HttpResponse<T> response = req.asObject(klass);
         status = response.getStatus();
         if (status < 200 || status >= 300) {
-            throw new RuntimeException("Failed to retrieve example catalog");
+            throw new RuntimeException("Failed to retrieve url " + url);
         }
-        return Arrays.asList(response.getBody());
+        return response.getBody();
     }
 
     private static List<ZipEntryFilter> retrieveFilters() {
-        return Arrays.asList(new StripRootFolderFilter(), new POMFilter());
-        /*
-        return ServiceLoader
+        var res = new ArrayList<ZipEntryFilter>();
+        res.add(new StripRootFolderFilter());
+        res.addAll(ServiceLoader
             .load(ZipEntryFilter.class)
             .stream()
             .map(p -> p.get())
-            .collect(Collectors.toList());
-            */
+            .collect(Collectors.toList()));
+        return res;
+    }
+
+    @Override
+    public boolean accept(Path entry, Map<String, String[]> params) {
+        boolean hasParams = params.containsKey("projectName")
+            || params.containsKey("projectVersion")
+            || params.containsKey("groupId")
+            || params.containsKey("artifactId");
+        return entry.toString().equals("pom.xml") && hasParams;
+    }
+    
+    @Override
+    public void filter(File file, Map<String, String[]> params) {
+        var model = Maven.readModel(file.toPath());
+        if (params.containsKey("projectName")) model.setName(params.get("projectName")[0]);
+        if (params.containsKey("projectVersion")) model.setVersion(params.get("projectVersion")[0]);
+        if (params.containsKey("groupId")) model.setGroupId(params.get("groupId")[0]);
+        if (params.containsKey("artifactId")) model.setArtifactId(params.get("artifactId")[0]);
+        Maven.writeModel(model, file.toPath());
     }
 }
 
@@ -203,6 +247,32 @@ class ExampleMetadata {
     public String asId() {
         return mission + "_" + runtime + "_" + version;
     }
+}
+
+class Metadata {
+    List<Mission> missions;
+    List<Runtime> runtimes;
+}
+
+class Mission {
+    String id;
+    String name;
+    String description;
+    Map<String, String> metadata;
+}
+
+class Runtime {
+    String id;
+    String name;
+    String description;
+    String icon;
+    Map<String, String> metadata;
+    List<Version> versions;
+}
+
+class Version {
+    String id;
+    String name;
 }
 
 interface ZipEntryFilter {
@@ -255,25 +325,4 @@ abstract class AbstractFilefilter implements ZipEntryFilter {
     abstract public boolean accept(Path entry, Map<String, String[]> params);
 
     abstract public void filter(File file, Map<String, String[]> params);
-}
-
-class POMFilter extends AbstractFilefilter {
-    @Override
-    public boolean accept(Path entry, Map<String, String[]> params) {
-        boolean hasParams = params.containsKey("projectName")
-            || params.containsKey("projectVersion")
-            || params.containsKey("groupId")
-            || params.containsKey("artifactId");
-        return entry.toString().equals("pom.xml") && hasParams;
-    }
-    
-    @Override
-    public void filter(File file, Map<String, String[]> params) {
-        var model = Maven.readModel(file.toPath());
-        if (params.containsKey("projectName")) model.setName(params.get("projectName")[0]);
-        if (params.containsKey("projectVersion")) model.setVersion(params.get("projectVersion")[0]);
-        if (params.containsKey("groupId")) model.setGroupId(params.get("groupId")[0]);
-        if (params.containsKey("artifactId")) model.setArtifactId(params.get("artifactId")[0]);
-        Maven.writeModel(model, file.toPath());
-    }
 }
