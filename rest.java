@@ -73,13 +73,13 @@ import picocli.CommandLine.ParseResult;
     subcommandsRepeatable = true)
 public class rest {
 
-    @Option(names = { "--url" }, description = "Alfresco REST API server URL")
+    @Option(names = { "--url" }, description = "URL of REST API server")
     String apiUrl;
 
-    @Option(names = { "--user", "-u" }, description = "Name of Alfresco user with admin rights")
+    @Option(names = { "--user", "-u" }, description = "Name of user to use for requests")
     String user;
 
-    @Option(names = { "--password", "-p" }, description = "Password of Alfresco user with admin rights")
+    @Option(names = { "--password", "-p" }, description = "Password of user to use for requests")
     String password;
 
     @Option(names = { "--insecure", "-i" }, description = "Ignore SSL errors")
