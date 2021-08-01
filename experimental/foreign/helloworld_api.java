@@ -17,15 +17,14 @@ class HelloWorld {
         try {
             // Get a handle to the `helloworld()` function from the
             // locally available dll named `helloworld.so`
-            lib = LibraryLookup.ofPath(Path.of("helloworld.so").toAbsolutePath());
+            lib = LibraryLookup.ofPath(Path.of("libhelloworld.so").toAbsolutePath());
         } catch (Exception ex) {
             // If we couldn't find the library in the curent directory
             // we tell the user how to compile it form source
             System.err.println("""
                     Couldn't locate helloworld library, did you compile it?
-                    Use the following commands to do so:
-                    $ gcc -c -fpic helloworld.c
-                    $ gcc -shared -o helloworld.so helloworld.o
+                    Use the following command to do so:
+                    $ gcc -shared -fPIC -o libhelloworld.so helloworld.c
                     """);
         }
 
