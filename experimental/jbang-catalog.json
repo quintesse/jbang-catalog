@@ -29,6 +29,12 @@
     },
     "telegram": {
       "script-ref": "telegram.java"
+    },
+    "chelloworld": {
+      "script-ref": "foreign/chelloworld.java"
+    },
+    "cstrlen": {
+      "script-ref": "foreign/cstrlen.java"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"

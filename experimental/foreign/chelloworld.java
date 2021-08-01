@@ -5,6 +5,7 @@
 //JAVA_OPTIONS --add-modules jdk.incubator.foreign -Dforeign.restricted=permit
 
 //SOURCES helloworld_api.java
+//FILES helloworld.so
 
 import jdk.incubator.foreign.CLinker;
 import jdk.incubator.foreign.FunctionDescriptor;
@@ -15,7 +16,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.nio.file.Path;
 
-class helloworld_test {
+class chelloworld {
 
     public static void main(String... args) throws Throwable {
         HelloWorld.library().helloworld();

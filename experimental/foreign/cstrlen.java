@@ -12,7 +12,7 @@ import jdk.incubator.foreign.MemoryAddress;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 
-class strlen_test {
+class cstrlen {
 
     public static void main(String... args) throws Throwable {
         // Get a handle to the standard `strlen()` function
