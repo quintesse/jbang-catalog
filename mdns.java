@@ -18,6 +18,7 @@ import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceInfo;
 import javax.jmdns.ServiceListener;
+import javax.jmdns.ServiceTypeListener;
 
 public class mdns {
     private static String format = "e a s h n";
@@ -26,7 +27,7 @@ public class mdns {
     private static boolean caseInsensitive;
     private static String exec;
 
-    private static class SampleListener implements ServiceListener {
+    private static class MDnsServiceListener implements ServiceListener {
         @Override
         public void serviceAdded(ServiceEvent event) {
             if (accept("ADD", event.getInfo())) {
@@ -190,8 +191,19 @@ public class mdns {
             }
         }
         try (JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost())) {
-            // Add a service listener
-            jmdns.addServiceListener("_http._tcp.local.", new SampleListener());
+            // Listen for types
+            jmdns.addServiceTypeListener(new ServiceTypeListener() {
+                @Override
+                public void serviceTypeAdded(ServiceEvent event) {
+                    // Now listen for services of this type
+                    jmdns.addServiceListener(event.getType(), new MDnsServiceListener());
+                }
+
+                @Override
+                public void subTypeForServiceTypeAdded(ServiceEvent event) {
+                    jmdns.addServiceListener(event.getType(), new MDnsServiceListener());
+                }
+            });
 
             // Wait for timeout or user interrupt
             if (timeout > 0) {
