@@ -35,6 +35,15 @@
     },
     "cstrlen": {
       "script-ref": "foreign/cstrlen.java"
+    },
+    "guarded_switch": {
+      "script-ref": "guarded_switch.java"
+    },
+    "shelly": {
+      "script-ref": "shelly.java"
+    },
+    "example_server": {
+      "script-ref": "example_server/example_server.java"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
