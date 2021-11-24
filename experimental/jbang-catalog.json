@@ -44,6 +44,9 @@
     },
     "example_server": {
       "script-ref": "example_server/example_server.java"
+    },
+    "lanterna": {
+      "script-ref": "lanterna.java"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
