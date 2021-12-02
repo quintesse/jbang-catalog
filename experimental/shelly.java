@@ -75,7 +75,8 @@ public class shelly {
             String type = get(settings, "device").getString("type");
             String mode = settings.optString("mode");
             String name = settings.optString("name");
-            System.out.print(String.format("%s %s %s",
+            StringBuilder str = new StringBuilder();
+            str.append(String.format("%s %s %s",
                 info.getName(),
                 Arrays.toString(info.getHostAddresses()),
                 type));
@@ -83,46 +84,46 @@ public class shelly {
             switch (typeparts[0]) {
                 case "SHSW":
                 case "SHPLG":
-                    System.out.print(String.format(" SWITCH %s", mode));
+                    str.append(String.format(" SWITCH %s", mode));
                     if (mode.isEmpty() || "relay".equals(mode)) {
                         JSONArray relays = settings.getJSONArray("relays");
                         if (relays.length() > 1 && name != null && !name.isEmpty()) {
-                            System.out.print(String.format(" '%s'", name));
+                            str.append(String.format(" '%s'", name));
                         }
-                        System.out.println();
                         for (int i=0; i<relays.length(); i++) {
                             JSONObject relay = relays.getJSONObject(i);
                             String rname = relay.optString("name");
-                            System.out.println(String.format("   RELAY #%d %s '%s'",
+                            System.out.println(String.format("%s / RELAY #%d %s '%s'",
+                                str.toString(),
                                 i,
                                 relay.getBoolean("ison") ? "ON" : "OFF",
                                 rname != null && !rname.isEmpty() ? rname : name));
                         }
                     } else {
-                        System.out.println(" ...");
+                        System.out.println(String.format("%s ...", str.toString()));
                     }
                     break;
                 case "SHCB":
                 case "SHBLB":
                 case "SHRGBW2":
                 case "SHDM":
-                    System.out.print(String.format(" LIGHT %s", mode));
-                    JSONArray lights = settings.getJSONArray("lights");
+                str.append(String.format(" LIGHT %s", mode));
+                JSONArray lights = settings.getJSONArray("lights");
                     if (lights.length() > 1 && name != null) {
-                        System.out.print(String.format(" '%s'", name));
+                        str.append(String.format(" '%s'", name));
                     }
-                    System.out.println();
                     for (int i=0; i<lights.length(); i++) {
                         JSONObject relay = lights.getJSONObject(i);
                         String rname = relay.optString("name");
-                        System.out.println(String.format("   LIGHT #%d %s '%s'",
+                        System.out.println(String.format("%s / LIGHT #%d %s '%s'",
+                            str.toString(),
                             i,
                             relay.getBoolean("ison") ? "ON" : "OFF",
                             rname != null && !rname.isEmpty() ? rname : name));
                     }
                 break;
                 default:
-                    System.out.println(" (Unknown hardware type)");
+                    System.out.println(String.format("%s (Unknown hardware type)", str.toString()));
                     break;
             }
         }
@@ -318,6 +319,11 @@ public class shelly {
         if (res.showHelp()) {
             System.exit(1);
         }
+        if (res.params().isEmpty()) {
+            System.err.println("Missing command");
+            help();
+            System.exit(1);
+        }
         if (!res.options().isEmpty()) {
             System.err.println("Unknown option " + res.options().get(0));
             System.exit(1);
@@ -346,6 +352,6 @@ public class shelly {
     }
 
     private static void help() {
-        System.err.println("Usage: shelly list|ip|info ...");
+        System.err.println("Usage: shelly list|settings|status|switch|light ...");
     }
 }
