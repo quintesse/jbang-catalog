@@ -47,6 +47,9 @@
     },
     "lanterna": {
       "script-ref": "lanterna.java"
+    },
+    "quickserv": {
+      "script-ref": "quickserv.java"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
