@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
@@ -149,25 +150,55 @@ class quickserv implements Callable<Integer> {
         }
         
         Process process = pb.start();
-        acopy(req.getInputStream(), process.getOutputStream())
-            .thenRun(() -> close(process.getOutputStream()));
+
+        // Copy input/output to/from command to request/response
+        var rin = req.getInputStream();
+        var pout = process.getOutputStream();
+        var inAlive = new AtomicBoolean();
+        var inc = acopy(rin, pout, inAlive);
+        inc.thenRun(() -> {
+            close(pout);
+            close(rin);
+        });
+        var pin = process.getInputStream();
+        var rout = res.getOutputStream();
+        var outAlive = new AtomicBoolean();
+        var outc = acopy(pin, rout, outAlive);
+        outc.thenRun(() -> {
+                if (process.isAlive()) {
+                    logger.warn("Terminating command: " + cmdStr);
+                    process.destroyForcibly();
+                }
+                close(pin);
+                close(rout);
+            });
+
         try {
-            copy(process.getInputStream(), res.getOutputStream());
-            if (!process.waitFor(50, TimeUnit.SECONDS)) {
+            // We wait for the command to finish, checking
+            // every 15s if any output was written
+            boolean terminated;
+            while (!(terminated = process.waitFor(15, TimeUnit.SECONDS)) && outAlive.get()) {
+                logger.debug("Command still alive: " + cmdStr);
+                outAlive.set(false);
+            }
+            // .. and if not, we terminate the command
+            if (!terminated) {
                 logger.warn("Terminating command: " + cmdStr);
                 process.destroyForcibly();
             }
+            // Wait for the in/out copiers to finish their work
+            inc.join();
+            outc.join();
             logger.info("Done");
         } catch (InterruptedException e) {
-            logger.warn("Terminating command: " + cmdStr);
-            process.destroyForcibly();
+            logger.info("Command was interrupted");
         }
     }
 
-    private static CompletableFuture<Void> acopy(InputStream source, OutputStream target) {
+    private static CompletableFuture<Void> acopy(InputStream source, OutputStream target, AtomicBoolean alive) {
         return CompletableFuture.runAsync(() -> {
             try {
-                copy(source, target);                
+                copy(source, target, alive);
             } catch (IOException e) {
                 // Ignore
             }
@@ -177,38 +208,15 @@ class quickserv implements Callable<Integer> {
     // Copy all bytes from input stream to output stream
     // while flushing the output stream each time we
     // encounter an EOL character.
-    private static void copy(InputStream in, OutputStream out) throws IOException {
-        byte[] buffer = new byte[8192];
-        int read;
-        while ((read = in.read(buffer, 0, 8192)) >= 0) {
-            int start = 0;
-            int length = read;
-            int pos;
-            while ((pos = findEOL(buffer, start, length)) >= 0) {
-                int wlen = pos - start + 1;
-                out.write(buffer, start, wlen);
+    private static void copy(InputStream in, OutputStream out, AtomicBoolean alive) throws IOException {
+        int c;
+        while ((c = in.read()) >= 0) {
+            out.write(c);
+            if (c == '\n' || c == '\r') {
                 out.flush();
-                start = pos + 1;
-                length -= wlen;
-            }
-            out.write(buffer, start, length);
-        }
-        out.flush();
-    }
-
-    private static int findEOL(byte[] buffer, int start, int size) {
-        for (int i=start; i<size; i++) {
-            byte c = buffer[i];
-            if (c == '\n') {
-                if ((i+1) < size && buffer[i+1] == '\r') {
-                    i++;
-                }
-                return i;
-            } else if (c == '\r') {
-                return i;
+                alive.set(true);
             }
         }
-        return -1;
     }
 
     private static void close(Closeable c) {
