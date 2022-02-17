@@ -50,6 +50,9 @@
     },
     "quickserv": {
       "script-ref": "quickserv.java"
+    },
+    "grep": {
+      "script-ref": "grep.jsh"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
