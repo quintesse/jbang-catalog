@@ -10,7 +10,10 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.jmdns.JmDNS;
@@ -22,6 +25,7 @@ import org.codejive.attocli.Args;
 import org.codejive.attocli.ArgsParser;
 import org.codejive.attocli.Option;
 
+import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
@@ -52,26 +56,30 @@ public class shelly {
 
         public static void handleShelly(ServiceInfo info) {
             if (info.getHostAddresses() != null && info.getHostAddresses().length > 0) {
-                String url = "http://" + info.getHostAddresses()[0] + "/settings";
-                Unirest.get(url).asJsonAsync(response -> {
-                    int code = response.getStatus();
-                    if (code == 200) {
-                        JsonNode body = response.getBody();
-                        if (!body.isArray()) {
-                            try {
-                                printShelly(info, body.getObject());
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
-                            return;
-                        }
-                    }
-                    System.out.println("ERROR: " + code + " - " + info.getName() + " - " + Arrays.toString(info.getHostAddresses()));
-                });
+                String gen = info.getPropertyString("gen");
+                if (gen == null) {
+                    requestInfoGen1(info);
+                } else if ("2".equalsIgnoreCase(gen)) {
+                    requestInfoGen2(info);
+                } else {
+                    System.out.println(String.format("%s %s Unsupported hardware generation: %s",
+                        info.getName(),
+                        Arrays.toString(info.getHostAddresses())));
+                }
             }
         }
 
-        private static synchronized void printShelly(ServiceInfo info, JSONObject settings) {
+        public static void requestInfoGen1(ServiceInfo info) {
+            String url = "http://" + info.getHostAddresses()[0] + "/settings";
+            request(url, obj -> printShellyGen1(info, obj));
+        }
+
+        public static void requestInfoGen2(ServiceInfo info) {
+            String url = "http://" + info.getHostAddresses()[0] + "/rpc/Shelly.GetStatus";
+            request(url, obj -> printShellyGen2(info, obj));
+        }
+
+        private static synchronized void printShellyGen1(ServiceInfo info, JSONObject settings) {
             String type = get(settings, "device").getString("type");
             String mode = settings.optString("mode");
             String name = settings.optString("name");
@@ -107,8 +115,8 @@ public class shelly {
                 case "SHBLB":
                 case "SHRGBW2":
                 case "SHDM":
-                str.append(String.format(" LIGHT %s", mode));
-                JSONArray lights = settings.getJSONArray("lights");
+                    str.append(String.format(" LIGHT %s", mode));
+                    JSONArray lights = settings.getJSONArray("lights");
                     if (lights.length() > 1 && name != null) {
                         str.append(String.format(" '%s'", name));
                     }
@@ -121,11 +129,26 @@ public class shelly {
                             relay.getBoolean("ison") ? "ON" : "OFF",
                             rname != null && !rname.isEmpty() ? rname : name));
                     }
-                break;
+                    break;
+                case "SHHT":
+                    str.append(" SENSOR");
+                    if (name != null && !name.isEmpty()) {
+                        str.append(String.format(" '%s'", name));
+                    }
+                    System.out.println(str.toString());
+                    break;
                 default:
                     System.out.println(String.format("%s (Unknown hardware type)", str.toString()));
                     break;
             }
+        }
+
+        private static synchronized void printShellyGen2(ServiceInfo info, JSONObject settings) {
+            StringBuilder str = new StringBuilder();
+            str.append(String.format("%s %s",
+                info.getName(),
+                Arrays.toString(info.getHostAddresses())));
+            System.out.println(str.toString());
         }
 
         @Override
@@ -164,7 +187,25 @@ public class shelly {
     }
 
     private static abstract class InfoCmd implements Function<List<String>, Integer> {
-        protected abstract String url(String ip);
+        protected String ip;
+
+        private int gen = -1;
+
+        protected int gen() {
+            if (gen == -1) {
+                String url = "http://" + ip + "/shelly";
+                request(url, obj -> {
+                    if (obj.has("gen")) {
+                        gen = obj.getInt("gen");
+                    } else {
+                        gen = 1;
+                    }
+                }).join();
+            }
+            return gen;
+        }
+
+        protected abstract String url();
 
         @Override
         public Integer apply(List<String> args) {
@@ -176,27 +217,28 @@ public class shelly {
                 System.err.println("Missing IP address");
                 help();
             }
-            String ip = res.params().get(0).value();
-            String url = "http://" + ip + "/settings";
-            Unirest.get(url).asJsonAsync(response -> {
-                int code = response.getStatus();
-                if (code == 200) {
-                    JsonNode body = response.getBody();
-                    System.out.println(body.toPrettyString());
-                } else {
-                    System.err.println("ERROR: " + code);
-                }
-        }).join();
+            if (res.optionsMap().containsKey("-g")) {
+                parseInt(res.optionsMap().get("-g").values().get(0), num -> gen = num);
+            }
+            ip = res.params().get(0).value();
+            request(url(), obj -> System.out.println(obj.toString(1))).join();
             return 0;
         }
 
         protected abstract void help();
     }
 
-    private static class SettingsCmd extends InfoCmd {
+    private static class ConfigCmd extends InfoCmd {
         @Override
-        protected String url(String ip) {
-            return "http://" + ip + "/settings";
+        protected String url() {
+            switch (gen()) {
+                case 1:
+                    return "http://" + ip + "/settings";
+                case 2:
+                    return "http://" + ip + "/rpc/Shelly.GetConfig";
+                default:
+                    throw new NoSuchElementException();
+            }
         }
 
         @Override
@@ -207,8 +249,15 @@ public class shelly {
 
     private static class StatusCmd extends InfoCmd {
         @Override
-        protected String url(String ip) {
-            return "http://" + ip + "/status";
+        protected String url() {
+            switch (gen()) {
+                case 1:
+                    return "http://" + ip + "/status";
+                case 2:
+                    return "http://" + ip + "/rpc/Shelly.GetStatus";
+                default:
+                    throw new NoSuchElementException();
+            }
         }
 
         @Override
@@ -218,6 +267,7 @@ public class shelly {
     }
 
     private static abstract class ActionCmd implements Function<List<String>, Integer> {
+
         protected abstract String url(String ip, int index);
 
         @Override
@@ -333,8 +383,8 @@ public class shelly {
             case "list":
                 System.exit(new ListCmd().apply(res.rest()));
                 break;
-            case "settings":
-                System.exit(new SettingsCmd().apply(res.rest()));
+            case "config":
+                System.exit(new ConfigCmd().apply(res.rest()));
                 break;
             case "status":
                 System.exit(new StatusCmd().apply(res.rest()));
@@ -352,6 +402,36 @@ public class shelly {
     }
 
     private static void help() {
-        System.err.println("Usage: shelly list|settings|status|switch|light ...");
+        System.err.println("Usage: shelly list|config|status|switch|light ...");
+    }
+
+    private static CompletableFuture<HttpResponse<JsonNode>> request(String url, Consumer<JSONObject> func) {
+        return Unirest.get(url).asJsonAsync(response -> {
+            int code = response.getStatus();
+            if (code == 200) {
+                JsonNode body = response.getBody();
+                if (!body.isArray()) {
+                    try {
+                        func.accept(body.getObject());
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                    return;
+                }
+            }
+            System.out.println("ERROR: " + code + " - " + url);
+        });
+    }
+
+    private static void parseInt(String num, Consumer<Integer> func) {
+        parseInt(num, func, e -> {});
+    }
+
+    private static void parseInt(String num, Consumer<Integer> func, Consumer<NumberFormatException> err) {
+        try {
+            func.accept(Integer.parseInt(num));
+        } catch (NumberFormatException e) {
+            err.accept(e);
+        }
     }
 }
