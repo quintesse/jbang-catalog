@@ -1,1 +1,3 @@
+*.class
+*.so
 experimental/telegram-token.sh
