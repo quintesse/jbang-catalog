@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//JAVA 18+
+//JAVA 17+
 //JAVAC_OPTIONS --add-modules jdk.incubator.foreign
 //JAVA_OPTIONS --add-modules jdk.incubator.foreign -Dforeign.restricted=permit --enable-native-access=ALL-UNNAMED
 
