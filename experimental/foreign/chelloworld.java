@@ -5,16 +5,7 @@
 //JAVA_OPTIONS --add-modules jdk.incubator.foreign -Dforeign.restricted=permit
 
 //SOURCES helloworld_api.java
-//FILES helloworld.so
-
-import jdk.incubator.foreign.CLinker;
-import jdk.incubator.foreign.FunctionDescriptor;
-import jdk.incubator.foreign.LibraryLookup;
-import jdk.incubator.foreign.MemoryAddress;
-
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodType;
-import java.nio.file.Path;
+///FILES libhelloworld.so
 
 class chelloworld {
 

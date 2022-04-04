@@ -1,3 +1,6 @@
+// Compile using:
+//    gcc -shared -fPIC -o libhelloworld.so helloworld.c
+
 #include <stdio.h>
 
 #include "helloworld.h"
