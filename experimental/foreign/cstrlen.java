@@ -6,27 +6,33 @@
 
 import jdk.incubator.foreign.CLinker;
 import jdk.incubator.foreign.FunctionDescriptor;
-import jdk.incubator.foreign.MemoryAddress;
+import jdk.incubator.foreign.MemorySegment;
 import jdk.incubator.foreign.ResourceScope;
+import jdk.incubator.foreign.ValueLayout;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodType;
 
 class cstrlen {
 
     public static void main(String... args) throws Throwable {
+        String msg = args.length > 0 ? args[0] : "Hello";
+
         // Get a handle to the standard `strlen()` function
-        MethodHandle strlen = CLinker.getInstance().downcallHandle(
-                CLinker.systemLookup().lookup("strlen").get(),
-                MethodType.methodType(long.class, MemoryAddress.class),
-                FunctionDescriptor.of(CLinker.C_LONG, CLinker.C_POINTER)
+        CLinker ln = CLinker.systemCLinker();
+        MethodHandle strlen = ln.downcallHandle(
+                ln.lookup("strlen").get(),
+                FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS)
         );
 
-        // And call it
         try (var scope = ResourceScope.newConfinedScope()) {
-            var cString = CLinker.toCString("Hello", scope);
-            long len = (long)strlen.invokeExact(cString.address()); // 5
-            System.out.println(len);
+            // We need to allocate some memory for our string
+            // (because Java strings are not compatible with C strings)
+            var msgs = MemorySegment.allocateNative(msg.length() + 1, scope);
+            // And copy our message into it
+            msgs.setUtf8String(0, msg);
+            // And finally we call the strlen() C function
+            long len = (long)strlen.invoke(msgs.address());
+            System.out.println("Length of '" + msg + "' = " + len);
         }
     }
 }

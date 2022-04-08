@@ -30,8 +30,17 @@
     "telegram": {
       "script-ref": "telegram.java"
     },
+    "chelloworld16": {
+      "script-ref": "foreign/chelloworld16.java"
+    },
     "chelloworld": {
       "script-ref": "foreign/chelloworld.java"
+    },
+    "cstrlen16": {
+      "script-ref": "foreign/cstrlen16.java"
+    },
+    "cstrlen17": {
+      "script-ref": "foreign/cstrlen17.java"
     },
     "cstrlen": {
       "script-ref": "foreign/cstrlen.java"

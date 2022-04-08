@@ -1,15 +1,15 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//JAVA 16+
+//JAVA 18+
 //JAVAC_OPTIONS --add-modules jdk.incubator.foreign
-//JAVA_OPTIONS --add-modules jdk.incubator.foreign -Dforeign.restricted=permit
+//JAVA_OPTIONS --add-modules jdk.incubator.foreign -Dforeign.restricted=permit --enable-native-access=ALL-UNNAMED -Djava.library.path=.
 
-//SOURCES helloworld_api.java
-///FILES libhelloworld.so
+// NB: sources are generated using: jextract -d helloworld_api --source -l helloworld helloworld.h
+//SOURCES helloworld_api/*.java
 
 class chelloworld {
 
     public static void main(String... args) throws Throwable {
-        HelloWorld.library().helloworld();
+        helloworld_h.helloworld();
     }
 }
