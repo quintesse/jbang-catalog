@@ -1,9 +1,9 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//DEPS info.picocli:picocli:4.3.2
-//DEPS com.google.code.gson:gson:2.8.6
-//DEPS org.yaml:snakeyaml:1.26
-//DEPS com.konghq:unirest-java:3.7.02
+//DEPS info.picocli:picocli:4.6.3
+//DEPS com.google.code.gson:gson:2.9.0
+//DEPS org.yaml:snakeyaml:1.30
+//DEPS com.konghq:unirest-java:3.13.10
 
 import java.io.File;
 import java.io.FileReader;

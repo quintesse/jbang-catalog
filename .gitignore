@@ -1,3 +1,4 @@
 *.class
 *.so
+.vscode
 experimental/telegram-token.sh
