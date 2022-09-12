@@ -1,13 +1,14 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS org.apache.maven:maven-model:3.3.9
-//DEPS org.apache.maven:maven-settings:3.3.9
-//DEPS org.apache.maven:maven-settings-builder:3.3.9
-//DEPS org.apache.maven:maven-aether-provider:3.3.9
-//DEPS org.eclipse.aether:aether-api:1.1.0
-//DEPS org.eclipse.aether:aether-impl:1.1.0
-//DEPS org.eclipse.aether:aether-connector-basic:1.1.0
-//DEPS org.eclipse.aether:aether-transport-file:1.1.0
-//DEPS org.eclipse.aether:aether-transport-http:1.1.0
+//DEPS org.apache.maven:maven-model:3.8.6
+//DEPS org.apache.maven:maven-settings:3.8.6
+//DEPS org.apache.maven:maven-settings-builder:3.8.6
+//DEPS org.apache.maven:maven-resolver-provider:3.8.6
+//DEPS org.apache.maven.resolver:maven-resolver-api:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-spi:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-impl:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-connector-basic:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-transport-file:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-transport-http:1.8.2
 
 import java.io.File;
 import java.io.FileReader;
@@ -36,6 +37,7 @@ import org.apache.maven.settings.building.SettingsBuildingException;
 import org.apache.maven.settings.building.SettingsBuildingRequest;
 import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.aether.AbstractRepositoryListener;
 import org.eclipse.aether.ConfigurationProperties;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -47,7 +49,6 @@ import org.eclipse.aether.collection.DependencySelector;
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
 import org.eclipse.aether.graph.DefaultDependencyNode;
 import org.eclipse.aether.graph.Dependency;
-import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.impl.DefaultServiceLocator;
 import org.eclipse.aether.repository.LocalRepository;
@@ -59,6 +60,7 @@ import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
+import org.eclipse.aether.transfer.AbstractTransferListener;
 import org.eclipse.aether.transport.file.FileTransporterFactory;
 import org.eclipse.aether.transport.http.HttpTransporterFactory;
 import org.eclipse.aether.util.artifact.JavaScopes;
@@ -300,42 +302,19 @@ public class mvndeps {
         RepositorySystem repoSystem = newRepositorySystem();
         DefaultRepositorySystemSession session = newSession( repoSystem );
         List<RemoteRepository> repos = configureSession(repoSystem, session);
-        // TODO figure out how to map this to ArtifactCallback 
-//        session.setTransferListener(new TransferListener(){
-//
-//            @Override
-//            public void transferCorrupted(TransferEvent arg0) throws TransferCancelledException {
-//                System.err.println("Transfer corrupted "+arg0.getResource());
-//            }
-//
-//            @Override
-//            public void transferFailed(TransferEvent arg0) {
-//                System.err.println("Transfer failed "+arg0.getResource());
-//            }
-//
-//            @Override
-//            public void transferInitiated(TransferEvent arg0) throws TransferCancelledException {
-//                System.err.println("Transfer initiated "+arg0.getResource());
-//            }
-//
+        
+        session.setTransferListener(new AbstractTransferListener(){
 //            @Override
 //            public void transferProgressed(TransferEvent arg0) throws TransferCancelledException {
 //                System.err.println("Transfer progressed "+arg0.getResource());
 //                System.err.println("Data length: "+arg0.getDataLength());
 //                System.err.println("Transferred bytes: "+arg0.getTransferredBytes());
 //            }
-//
-//            @Override
-//            public void transferStarted(TransferEvent arg0) throws TransferCancelledException {
-//                System.err.println("Transfer started "+arg0.getResource());
-//                
-//            }
-//
-//            @Override
-//            public void transferSucceeded(TransferEvent arg0) {
-//                System.err.println("Transfer succeeded "+arg0.getResource());
-//                
-//            }});
+        });
+        session.setRepositoryListener(new AbstractRepositoryListener() {
+            // Override whatever you're interested in
+        });
+
 
         Artifact pomResultArtifact = null;
         // I don't think POMs with a classifier exist, so let's not set it
