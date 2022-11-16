@@ -27,7 +27,7 @@ class simple_httpd implements HttpHandler {
     public void handle(HttpExchange x) throws IOException {
         if (!"GET".equalsIgnoreCase(x.getRequestMethod())) {
             if (verbose) {
-                System.out.println("405 Method Not Allowed: " + x.getRequestMethod());
+                System.out.println("405 Method Not Allowed: " + x.getRequestMethod() + " " + x.getRequestURI());
             }
             sendError(x, HTTP_BAD_METHOD);
             return;
