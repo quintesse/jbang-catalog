@@ -26,15 +26,15 @@
     },
     "sysenv": {
       "script-ref": "system_env.java",
-      "description": "Prints out Java\u0027s System environment"
+      "description": "Prints out Java's System environment"
     },
     "sysprops": {
       "script-ref": "system_properties.java",
-      "description": "Prints out Java\u0027s System properties"
+      "description": "Prints out Java's System properties"
     },
     "mdns": {
       "script-ref": "mdns.java"
     }
   },
-  "description": "Quintesse\u0027s list of useful JBang scripts"
+  "description": "Quintesse's list of useful JBang scripts"
 }
