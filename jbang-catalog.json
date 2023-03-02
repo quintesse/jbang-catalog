@@ -1,5 +1,9 @@
 {
   "aliases": {
+    "cat": {
+      "script-ref": "cat.java",
+      "description": "Simply copies the contents of the provided files to the standard output"
+    },
     "echo": {
       "script-ref": "echo.java",
       "description": "Just prints out its arguments"
