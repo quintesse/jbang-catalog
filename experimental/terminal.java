@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
@@ -93,12 +94,19 @@ class box implements Callable<Integer> {
     public Integer call() throws Exception {
 
         try (Terminal terminal = TerminalBuilder.builder().build()) {
+            Display display = new Display(terminal, true);
             Attributes savedAttributes = terminal.enterRawMode();
             terminal.puts(Capability.enter_ca_mode);
-            int w = terminal.getWidth();
-            int h = terminal.getHeight();
+            terminal.writer().flush();
 
-            Display display = new Display(terminal, true);
+            Size size = new Size();
+            size.copy(terminal.getSize());
+            display.clear();
+            display.reset();
+
+            int w = size.getColumns();
+            int h = size.getRows();
+
             display.resize(h, w);
 
             // Build Strings to displayed
@@ -115,6 +123,8 @@ class box implements Callable<Integer> {
 
             terminal.setAttributes(savedAttributes);
             terminal.puts(Capability.exit_ca_mode);
+            terminal.writer().flush();
+
             return 0;
         }
     }    
