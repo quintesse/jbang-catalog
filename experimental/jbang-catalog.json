@@ -62,6 +62,9 @@
     },
     "grep": {
       "script-ref": "grep.jsh"
+    },
+    "terminal": {
+      "script-ref": "terminal.java"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
