@@ -14,6 +14,8 @@
  *   That's in the "jvmci.Compiler" system property.
  */
 
+package scripts;
+
 import java.lang.management.ManagementFactory;
 import com.sun.management.HotSpotDiagnosticMXBean;
 import com.sun.management.VMOption;
