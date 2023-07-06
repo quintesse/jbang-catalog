@@ -39,7 +39,7 @@
     "mdns": {
       "script-ref": "mdns.java"
     },
-    "test123": {
+    "test456": {
       "script-ref": "mdns.java"
     }
   },
