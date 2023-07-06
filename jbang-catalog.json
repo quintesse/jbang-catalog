@@ -38,9 +38,6 @@
     },
     "mdns": {
       "script-ref": "mdns.java"
-    },
-    "test456": {
-      "script-ref": "mdns.java"
     }
   },
   "description": "Quintesse's list of useful JBang scripts!"
