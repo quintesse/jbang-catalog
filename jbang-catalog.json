@@ -1,4 +1,10 @@
 {
+  "catalogs": {
+    "experiments": {
+      "catalog-ref": "https://raw.githubusercontent.com/quintesse/jbang-catalog/master/experimental/jbang-catalog.json",
+      "description": "Experimental scripts"
+    }
+  },
   "aliases": {
     "cat": {
       "script-ref": "cat.java",
