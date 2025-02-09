@@ -8,6 +8,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,10 +32,36 @@ public class mvn2jbang {
     static void writeTags(PrintWriter writer, Model model, boolean usePrefix) {
         String prefix = usePrefix ? "//" : "";
         writer.println(prefix + "DEPS " + model.getDependencies().stream()
-                .map(d -> d.getGroupId() + ":" + d.getArtifactId() + ":" + d.getVersion())
+                .map(d -> replaceProps(d.getGroupId() + ":" + d.getArtifactId() + ":" + d.getVersion(), model))
                 .collect(Collectors.joining("\n" + prefix + "DEPS ")));
+
         if (model.getGroupId() != null && model.getArtifactId() != null && model.getVersion() != null) {
             writer.println(prefix + "GAV " + model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
+        }
+
+        int sourceVer = safeInt(model.getProperties().getProperty("maven.compiler.source"), 0);
+        int targetVer = safeInt(model.getProperties().getProperty("maven.compiler.target"), 0);
+        int javaVer = Math.max(sourceVer, targetVer);
+        if (javaVer > 8) {
+            writer.println(prefix + "JAVA " + javaVer + "+");
+        }
+    }
+
+    static String replaceProps(String text, Model model) {
+        return Pattern.compile("\\$\\{([^}]+)\\}").matcher(text).replaceAll(matchResult -> {
+            String key = matchResult.group(1);
+            return model.getProperties().getProperty(key, matchResult.group(0));
+        });
+    }
+    
+    static int safeInt(String num, int def) {
+        if (num == null) {
+            return def;
+        }
+        try {
+            return Integer.parseInt(num);
+        } catch (NumberFormatException e) {
+            return def;
         }
     }
 
