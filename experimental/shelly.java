@@ -32,12 +32,10 @@ import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 
 public class shelly {
-    private static class ListCmd implements Function<List<String>, Integer> {
+    private abstract static class BaseListCmd implements Function<List<String>, Integer> {
         private static int timeout = 10;
 
-        private static Map<String, JSONObject> result;
-
-        private static class ShellyServiceListener implements ServiceListener {
+        private class ShellyServiceListener implements ServiceListener {
             @Override
             public void serviceAdded(ServiceEvent event) {
             }
@@ -54,7 +52,7 @@ public class shelly {
             }
         }
 
-        public static void handleShelly(ServiceInfo info) {
+        public void handleShelly(ServiceInfo info) {
             if (info.getHostAddresses() != null && info.getHostAddresses().length > 0) {
                 String gen = info.getPropertyString("gen");
                 if (gen == null) {
@@ -69,17 +67,57 @@ public class shelly {
             }
         }
 
-        public static void requestInfoGen1(ServiceInfo info) {
+        public void requestInfoGen1(ServiceInfo info) {
             String url = "http://" + info.getHostAddresses()[0] + "/settings";
-            request(url, obj -> printShellyGen1(info, obj));
+            request(url, obj -> handleShellyGen1Info(info, obj));
         }
 
-        public static void requestInfoGen2(ServiceInfo info) {
-            String url = "http://" + info.getHostAddresses()[0] + "/rpc/Shelly.GetStatus";
-            request(url, obj -> printShellyGen2(info, obj));
+        public void requestInfoGen2(ServiceInfo info) {
+            String url = "http://" + info.getHostAddresses()[0] + "/rpc/Shelly.GetConfig";
+            request(url, obj -> handleShellyGen2Info(info, obj));
         }
 
-        private static synchronized void printShellyGen1(ServiceInfo info, JSONObject settings) {
+        public abstract void handleShellyGen1Info(ServiceInfo info, JSONObject settings);
+
+        public abstract void handleShellyGen2Info(ServiceInfo info, JSONObject settings);
+
+        @Override
+        public Integer apply(List<String> args) {
+            Args res = ArgsParser.create().needsValue("--timeout", "-t").parse(args);
+            for (Option opt : res.options()) {
+                switch (opt.name()) {
+                    case "-t":
+                    case "--timeout":
+                        timeout = Integer.parseInt(opt.values().get(0));
+                        break;
+                    case "-h":
+                    case "--help":
+                        System.err.println("Usage: shelly list [-t|--timeout <seconds>]");
+                        return 1;
+                }
+            }
+    
+            try (JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost())) {
+                jmdns.addServiceListener("_http._tcp.local.", new ShellyServiceListener());
+                // Wait for timeout or user interrupt
+                if (timeout > 0) {
+                    Thread.sleep(timeout * 1000);
+                } else {
+                    Thread.currentThread().join();
+                }
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            } catch (InterruptedException e) {
+                System.err.println(e.getMessage());
+            }
+            Unirest.shutDown();
+            return 0;
+        }
+    }
+
+    private static class ListCmd extends BaseListCmd {
+        @Override
+        public synchronized void handleShellyGen1Info(ServiceInfo info, JSONObject settings) {
             String type = get(settings, "device").getString("type");
             String mode = settings.optString("mode");
             String name = settings.optString("name");
@@ -143,7 +181,8 @@ public class shelly {
             }
         }
 
-        private static synchronized void printShellyGen2(ServiceInfo info, JSONObject settings) {
+        @Override
+        public synchronized void handleShellyGen2Info(ServiceInfo info, JSONObject settings) {
             StringBuilder str = new StringBuilder();
             str.append(String.format("%s %s",
                 info.getName(),
@@ -153,36 +192,7 @@ public class shelly {
 
         @Override
         public Integer apply(List<String> args) {
-            Args res = ArgsParser.create().needsValue("--timeout", "-t").parse(args);
-            for (Option opt : res.options()) {
-                switch (opt.name()) {
-                    case "-t":
-                    case "--timeout":
-                        timeout = Integer.parseInt(opt.values().get(0));
-                        break;
-                    case "-h":
-                    case "--help":
-                        System.err.println("Usage: shelly list [-t|--timeout <seconds>]");
-                        return 1;
-                }
-            }
-    
-            result = new ConcurrentHashMap<>();
-            try (JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost())) {
-                jmdns.addServiceListener("_http._tcp.local.", new ShellyServiceListener());
-                // Wait for timeout or user interrupt
-                if (timeout > 0) {
-                    Thread.sleep(timeout * 1000);
-                } else {
-                    Thread.currentThread().join();
-                }
-            } catch (IOException e) {
-                System.err.println(e.getMessage());
-            } catch (InterruptedException e) {
-                System.err.println(e.getMessage());
-            }
-            Unirest.shutDown();
-            return 0;
+            return super.apply(args);
         }
     }
 
@@ -243,7 +253,7 @@ public class shelly {
 
         @Override
         protected void help() {
-            System.err.println("Usage: shelly settings <ip>");
+            System.err.println("Usage: shelly config <ip>");
         }
     }
 
@@ -263,6 +273,33 @@ public class shelly {
         @Override
         protected void help() {
             System.err.println("Usage: shelly status <ip>");
+        }
+    }
+
+    private static class DumpCmd extends BaseListCmd {
+        private JSONArray result = new JSONArray();
+
+        @Override
+        public synchronized void handleShellyGen1Info(ServiceInfo info, JSONObject settings) {
+            String name = info.getName();
+            System.err.println("Found Gen 1 device: " + name);
+            result.put(settings);
+        }
+
+        @Override
+        public synchronized void handleShellyGen2Info(ServiceInfo info, JSONObject settings) {
+            String name = info.getName();
+            System.err.println("Found Gen 2 device: " + name);
+            result.put(settings);
+        }
+
+        @Override
+        public Integer apply(List<String> args) {
+            int res = super.apply(args);
+            if (res == 0) {
+                System.out.println(result.toString(1));
+            }
+            return res;
         }
     }
 
@@ -386,6 +423,9 @@ public class shelly {
             case "config":
                 System.exit(new ConfigCmd().apply(res.rest()));
                 break;
+            case "dump":
+                System.exit(new DumpCmd().apply(res.rest()));
+                break;
             case "status":
                 System.exit(new StatusCmd().apply(res.rest()));
                 break;
@@ -402,7 +442,7 @@ public class shelly {
     }
 
     private static void help() {
-        System.err.println("Usage: shelly list|config|status|switch|light ...");
+        System.err.println("Usage: shelly list|config|dump|status|switch|light ...");
     }
 
     private static CompletableFuture<HttpResponse<JsonNode>> request(String url, Consumer<JSONObject> func) {
