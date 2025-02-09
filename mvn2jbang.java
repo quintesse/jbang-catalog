@@ -30,7 +30,7 @@ public class mvn2jbang {
         String prefix = usePrefix ? "//" : "";
         writer.println(prefix + "DEPS " + model.getDependencies().stream()
                 .map(d -> d.getGroupId() + ":" + d.getArtifactId() + ":" + d.getVersion())
-                .collect(Collectors.joining("\n//DEPS ")));
+                .collect(Collectors.joining("\n" + prefix + "DEPS ")));
         if (model.getGroupId() != null && model.getArtifactId() != null && model.getVersion() != null) {
             writer.println(prefix + "GAV " + model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
         }
