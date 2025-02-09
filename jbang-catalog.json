@@ -44,6 +44,10 @@
     },
     "mdns": {
       "script-ref": "mdns.java"
+    },
+    "mvn2jbang": {
+      "script-ref": "mvn2jbang.java",
+      "description": "Adds a Maven project's dependencies to a JBang script"
     }
   },
   "description": "Quintesse's list of useful JBang scripts!"
