@@ -2,15 +2,14 @@
 
 package scripts;
 
-import org.apache.maven.model.Model;
+import org.apache.maven.model.*;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.regex.*;
+import java.util.stream.*;
 
 public class mvn2jbang {
 
@@ -31,9 +30,27 @@ public class mvn2jbang {
 
     static void writeTags(PrintWriter writer, Model model, boolean usePrefix) {
         String prefix = usePrefix ? "//" : "";
-        writer.println(prefix + "DEPS " + model.getDependencies().stream()
-                .map(d -> replaceProps(d.getGroupId() + ":" + d.getArtifactId() + ":" + d.getVersion(), model))
-                .collect(Collectors.joining("\n" + prefix + "DEPS ")));
+
+        if (model.getDependencyManagement() != null) {
+            for (Dependency d : model.getDependencyManagement().getDependencies()) {
+                String dep = d.getGroupId() + ":" + d.getArtifactId();
+                if (d.getVersion() != null) {
+                    dep += ":" + d.getVersion();
+                }
+                dep += "@pom";
+                dep = replaceProps(dep, model);
+                writer.println(prefix + "DEPS " + dep);
+            }
+        }
+
+        for (Dependency d : model.getDependencies()) {
+            String dep = d.getGroupId() + ":" + d.getArtifactId();
+            if (d.getVersion() != null) {
+                dep += ":" + d.getVersion();
+            }
+            dep = replaceProps(dep, model);
+            writer.println(prefix + "DEPS " + dep);
+        }
 
         if (model.getGroupId() != null && model.getArtifactId() != null && model.getVersion() != null) {
             writer.println(prefix + "GAV " + model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
@@ -42,7 +59,7 @@ public class mvn2jbang {
         int sourceVer = safeInt(model.getProperties().getProperty("maven.compiler.source"), 0);
         int targetVer = safeInt(model.getProperties().getProperty("maven.compiler.target"), 0);
         int javaVer = Math.max(sourceVer, targetVer);
-        if (javaVer > 8) {
+        if (javaVer >= 8) {
             writer.println(prefix + "JAVA " + javaVer + "+");
         }
     }
