@@ -1,0 +1,24 @@
+name: Update AUTHORS
+on:
+  workflow_dispatch:      
+jobs:
+  updateReadme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: jbangdev/setup-jbang@main
+
+      - name: Update README
+        run: |
+          jbang catalog2readme@jbangdev > README.md
+    
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "docs: Update README"
+          title: Update README
+          body: Update README with the latest list of aliases, templates and catalogs
+          branch: update-readme
