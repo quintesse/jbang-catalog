@@ -13,7 +13,7 @@ jobs:
 
       - name: Update README
         run: |
-          jbang catalog2readme@jbangdev -l ${{ GITHUB_REPOSITORY }} > README.md
+          jbang catalog2readme@jbangdev -l ${{ github.repository }} > README.md
     
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
