@@ -1,4 +1,4 @@
-name: Update AUTHORS
+name: Update README
 on:
   workflow_dispatch:      
 jobs:
