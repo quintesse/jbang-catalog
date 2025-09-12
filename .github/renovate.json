@@ -7,16 +7,16 @@
     {
       "fileMatch": "\\.java",
       "matchStrings": [
-        "//DEPS (?<depName>.+):(\\${.+:(?<currentValue>[^ }]+)})",
-        "//DEPS ((?<depName>.+:.+):(?<currentValue>[^$].+))(\\@\\w+)?"
+        "//DEPS (?<depName>[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+):(\\${.+:(?<currentValue>[^ }]+)})",
+        "//DEPS ((?<depName>[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+):(?<currentValue>[^ $:@].+))(\\@\\w+)?"
       ],
       "datasourceTemplate": "maven"
     },
     {
       "fileMatch": ".?jbang-catalog.json",
       "matchStrings": [
-        "\"(?<depName>.+):(\\${.+:(?<currentValue>[^ }]+)})\"",
-        "\"((?<depName>.+:.+):(?<currentValue>[^$].+))(\\@\\w+)?\""
+        "\"(?<depName>[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+):(\\${.+:(?<currentValue>[^ }]+)})\"",
+        "\"((?<depName>[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+):(?<currentValue>[^ $:@].+))(\\@\\w+)?\""
       ],
       "datasourceTemplate": "maven"
     }
