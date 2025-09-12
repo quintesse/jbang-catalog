@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS com.googlecode.lanterna:lanterna:3.1.1
+//DEPS com.googlecode.lanterna:lanterna:3.1.3
 
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.gui2.*;
