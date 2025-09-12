@@ -2,7 +2,7 @@
 
 //JAVA 14+
 
-//DEPS com.sparkjava:spark-core:2.9.1
+//DEPS com.sparkjava:spark-core:2.9.4
 //DEPS com.google.code.gson:gson:2.8.6
 //DEPS com.konghq:unirest-java:3.6.00
 //DEPS org.apache.httpcomponents:fluent-hc:4.5.12
