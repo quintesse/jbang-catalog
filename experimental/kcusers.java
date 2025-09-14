@@ -4,7 +4,7 @@
  * Simplistic and probably very dangerous script to delete all users from a KeyCloak instance.
  */
 
-//DEPS org.keycloak:keycloak-admin-client:9.0.0
+//DEPS org.keycloak:keycloak-admin-client:9.0.3
 //DEPS org.jboss.resteasy:resteasy-client:4.5.2.Final
 
 import org.keycloak.OAuth2Constants;
