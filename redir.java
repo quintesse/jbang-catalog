@@ -7,8 +7,8 @@ import java.nio.file.*;
 import java.util.regex.Pattern;
 
 public class redir {
-    private static Pattern directivePattern = Pattern.compile("^//[A-Z]{3,} .*$");
-    private static Pattern projectDirectivePattern = Pattern.compile("^[A-Z]{3,} .*$");
+    private static Pattern directivePattern = Pattern.compile("^//[A-Z]{3,}( .*|\\s*)$");
+    private static Pattern projectDirectivePattern = Pattern.compile("^[A-Z]{3,}( .*|\\s*)$");
 
     public static void main(String[] args) throws IOException {
         if (args.length < 1) {
@@ -58,7 +58,6 @@ public class redir {
         }
         Path inFile = Paths.get(inFileName);
         Path outFile = Files.createTempFile("redir", ".tmp");
-        boolean first = true;
         boolean project = inFile.getFileName().toString().equals("build.jbang");
         Pattern pattern = project ? projectDirectivePattern : directivePattern;
         if (directive != null) {
@@ -69,44 +68,68 @@ public class redir {
         }
         // Copy all lines from input file to output file except the ones
         // matching the directive or all directives if none specified
-        try (var reader = Files.newBufferedReader(inFile);
-             var writer = Files.newBufferedWriter(outFile)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                boolean matches = directive != null ?
-                        line.equals(directive) || line.startsWith(directive.toUpperCase() + " ")
-                        : project || pattern.matcher(line).matches();
-                if (matches) {
-                    if (first && !strip && !list) {
-                        // copy all lines from stdin to the output file
-                        try (var stdin = System.in;
-                             var stdinReader = new BufferedReader(new InputStreamReader(stdin))) {
-                            String stdinLine;
-                            while ((stdinLine = stdinReader.readLine()) != null) {
-                                writer.write(stdinLine);
-                                writer.newLine();
+        boolean firstRun = true;
+        while (true) {
+            boolean firstMatch = true;
+            boolean matched = false;
+            try (var reader = Files.newBufferedReader(inFile);
+                var writer = Files.newBufferedWriter(outFile)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    boolean matches;
+                    if (firstRun) {
+                        // In the first run we look for JBang directives (eg //DEPS, //JAVA etc)
+                        matches = directive != null ?
+                                line.equals(directive) || line.startsWith(directive.toUpperCase() + " ")
+                                : project || pattern.matcher(line).matches();
+                    } else {
+                        // If we didn't find any directive in the first run we just add the new
+                        // lines to the top of the file (after any shebang)
+                        matches = firstMatch && !line.startsWith("///");
+                    }
+                    if (matches) {
+                        if (firstMatch && !strip && !list) {
+                            // copy all lines from stdin to the output file
+                            try (var stdin = System.in;
+                                var stdinReader = new BufferedReader(new InputStreamReader(stdin))) {
+                                String stdinLine;
+                                while ((stdinLine = stdinReader.readLine()) != null) {
+                                    writer.write(stdinLine);
+                                    writer.newLine();
+                                }
                             }
                         }
+                        firstMatch = false;
+                        matched = true;
+                        if (list) {
+                            System.out.println(line);
+                        }
+                        if (firstRun) {
+                            // Prevent line from being written to output file
+                            continue;
+                        }
                     }
-                    first = false;
-                    if (list) {
-                        System.out.println(line);
-                    }
-                    continue;
+                    writer.write(line);
+                    writer.newLine();
                 }
-                writer.write(line);
-                writer.newLine();
+                // now add the new directive if any
+                if (directive != null) {
+                    writer.write("// " + directive);
+                    writer.newLine();
+                }
             }
-            // now add the new directive if any
-            if (directive != null) {
-                writer.write("// " + directive);
-                writer.newLine();
+            if (matched || !firstRun) {
+                // We either got a match or we already did a second run
+                break;
             }
+            firstRun = false;
         }
         if (strip || !list) {
+            // Move the temporary output file to its final location
             Path outFilePath = outFileName != null ? Paths.get(outFileName) : inFile;
             Files.move(outFile, outFilePath, StandardCopyOption.REPLACE_EXISTING);
         } else {
+            // Just delete the temporary output file
             Files.delete(outFile);
         }
     }
