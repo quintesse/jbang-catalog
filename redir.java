@@ -15,11 +15,14 @@ public class redir {
             System.err.println(
                     "Either strips all directives from a JBang script or only the ones specified\n" +
                     "and replaces them with the directives passed on the standard input.\n");
-            System.err.println("Usage: redir [-d|--directive <name>] <filename>");
+            System.err.println("Usage: redir [-d|--directive <name>] [-s|--strip] [-v|--view] <filename>");
             System.exit(1);
         }
         String inFileName = null;
+        String outFileName = null;
         String directive = null;
+        boolean strip = false;
+        boolean list = false;
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if (arg.startsWith("-")) {
@@ -30,6 +33,17 @@ public class redir {
                         System.err.println("Error: Missing value for " + arg);
                         System.exit(1);
                     }
+                } else if ("-o".equals(arg) || "--output".equals(arg)) {
+                    if (i + 1 < args.length) {
+                        outFileName = args[++i];
+                    } else {
+                        System.err.println("Error: Missing value for " + arg);
+                        System.exit(1);
+                    }
+                } else if ("-s".equals(arg) || "--strip".equals(arg)) {
+                    strip = true;
+                } else if ("-l".equals(arg) || "--list".equals(arg)) {
+                    list = true;
                 } else {
                     System.err.println("Error: Unknown option " + arg);
                     System.exit(1);
@@ -63,7 +77,7 @@ public class redir {
                         line.equals(directive) || line.startsWith(directive.toUpperCase() + " ")
                         : project || pattern.matcher(line).matches();
                 if (matches) {
-                    if (first) {
+                    if (first && !strip && !list) {
                         // copy all lines from stdin to the output file
                         try (var stdin = System.in;
                              var stdinReader = new BufferedReader(new InputStreamReader(stdin))) {
@@ -73,7 +87,10 @@ public class redir {
                                 writer.newLine();
                             }
                         }
-                        first = false;
+                    }
+                    first = false;
+                    if (list) {
+                        System.out.println(line);
                     }
                     continue;
                 }
@@ -86,6 +103,11 @@ public class redir {
                 writer.newLine();
             }
         }
-        Files.move(outFile, inFile, StandardCopyOption.REPLACE_EXISTING);
+        if (strip || !list) {
+            Path outFilePath = outFileName != null ? Paths.get(outFileName) : inFile;
+            Files.move(outFile, outFilePath, StandardCopyOption.REPLACE_EXISTING);
+        } else {
+            Files.delete(outFile);
+        }
     }
 }
