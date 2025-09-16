@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//DEPS com.konghq:unirest-java:3.6.00
+//DEPS com.konghq:unirest-java:3.14.5
 
 package scripts;
 
