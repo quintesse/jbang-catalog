@@ -1,9 +1,9 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //JAVA 11+
-//DEPS org.eclipse.jetty:jetty-proxy:11.0.25
-//DEPS org.eclipse.jetty:jetty-server:11.0.25
-//DEPS org.eclipse.jetty:jetty-servlet:11.0.25
-//DEPS org.eclipse.jetty:jetty-slf4j-impl:11.0.25
+//DEPS org.eclipse.jetty:jetty-proxy:11.0.26
+//DEPS org.eclipse.jetty:jetty-server:11.0.26
+//DEPS org.eclipse.jetty:jetty-servlet:11.0.26
+//DEPS org.eclipse.jetty:jetty-slf4j-impl:11.0.26
 //FILES jetty-logging.properties=jetty.props
 
 import org.eclipse.jetty.proxy.ProxyServlet;
