@@ -52,6 +52,10 @@
     "redir": {
       "script-ref": "redir.java",
       "description": "Lists and updates directives in JBang scripts"
+    },
+    "runall": {
+      "script-ref": "runall.java",
+      "description": "Runs multiple commands in parallel. By default the command that is run is `jbang`"
     }
   },
   "description": "Quintesse's list of useful JBang scripts!"
