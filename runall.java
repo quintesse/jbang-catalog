@@ -197,7 +197,7 @@ public class runall {
             }
         }
         if (!replaced) {
-            command.add("\"" + script + "\"");
+            command.add(script);
         }
         return command;
     }
