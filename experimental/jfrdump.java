@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//DEPS info.picocli:picocli:4.2.0
+//DEPS info.picocli:picocli:4.7.7
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
