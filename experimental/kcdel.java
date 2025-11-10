@@ -8,7 +8,7 @@
  * request and pass it to the script.
  */
 
-//DEPS com.konghq:unirest-java:3.6.00
+//DEPS com.konghq:unirest-java:3.14.5
 
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
