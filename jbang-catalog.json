@@ -56,6 +56,11 @@
     "runall": {
       "script-ref": "runall.java",
       "description": "Runs multiple commands in parallel. By default the command that is run is `jbang`"
+    },
+    "refactor": {
+      "script-ref": "org.apache.netbeans.modules.jackpot30:tool:28.0",
+      "main": "org.netbeans.modules.jackpot30.cmdline.Main",
+      "description": "Runs Netbeans Jackpot tool for refactoring Java code"
     }
   },
   "description": "Quintesse's list of useful JBang scripts!"
