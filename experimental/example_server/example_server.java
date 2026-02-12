@@ -3,7 +3,7 @@
 //JAVA 14+
 
 //DEPS com.sparkjava:spark-core:2.9.4
-//DEPS com.google.code.gson:gson:2.8.6
+//DEPS com.google.code.gson:gson:2.13.2
 //DEPS com.konghq:unirest-java:3.14.5
 //DEPS org.apache.httpcomponents:fluent-hc:4.5.14
 //DEPS org.apache.commons:commons-compress:1.20
