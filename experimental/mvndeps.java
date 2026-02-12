@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS org.apache.maven:maven-model:3.8.6
+//DEPS org.apache.maven:maven-model:3.9.12
 //DEPS org.apache.maven:maven-settings:3.8.6
 //DEPS org.apache.maven:maven-settings-builder:3.8.6
 //DEPS org.apache.maven:maven-resolver-provider:3.8.6

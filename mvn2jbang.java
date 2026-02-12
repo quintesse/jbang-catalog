@@ -1,4 +1,4 @@
-//DEPS org.apache.maven:maven-model:3.9.9
+//DEPS org.apache.maven:maven-model:3.9.12
 
 package scripts;
 
