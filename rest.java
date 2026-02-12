@@ -3,7 +3,7 @@
 //DEPS info.picocli:picocli:4.6.3
 //DEPS com.google.code.gson:gson:2.9.0
 //DEPS org.yaml:snakeyaml:1.30
-//DEPS com.konghq:unirest-java:3.13.10
+//DEPS com.konghq:unirest-java:3.14.5
 
 package scripts;
 
