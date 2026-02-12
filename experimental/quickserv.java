@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS info.picocli:picocli:4.7.7
-//DEPS org.eclipse.jetty:jetty-server:11.0.7
+//DEPS org.eclipse.jetty:jetty-server:11.0.26
 //DEPS org.slf4j:slf4j-api:2.0.0-alpha5 org.eclipse.jetty:jetty-slf4j-impl:11.0.7
 //JAVA 9+
 
