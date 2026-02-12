@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS info.picocli:picocli:4.5.0
+//DEPS info.picocli:picocli:4.7.7
 //DEPS org.slf4j:slf4j-api:2.0.0-alpha5 org.slf4j:slf4j-simple:2.0.0-alpha5
 //JAVA 9+
 

@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//DEPS info.picocli:picocli:4.6.3
+//DEPS info.picocli:picocli:4.7.7
 //DEPS com.google.code.gson:gson:2.9.0
 //DEPS org.yaml:snakeyaml:1.30
 //DEPS com.konghq:unirest-java:3.13.10
