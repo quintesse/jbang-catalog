@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS info.picocli:picocli:4.7.7
-//DEPS com.github.pengrad:java-telegram-bot-api:5.0.1
+//DEPS com.github.pengrad:java-telegram-bot-api:5.7.0
 
 /*
  * A very simple test script for receiving and sending messages on Telegram.
