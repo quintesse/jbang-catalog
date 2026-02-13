@@ -6,7 +6,7 @@
 //DEPS org.eclipse.jetty:jetty-slf4j-impl:11.0.26
 //DEPS org.eclipse.jetty:jetty-client:11.0.26
 //DEPS org.eclipse.jetty:jetty-alpn-client:11.0.26
-//DEPS org.bouncycastle:bcprov-jdk18on:1.78.1
+//DEPS org.bouncycastle:bcprov-jdk18on:1.83
 //DEPS org.bouncycastle:bcpkix-jdk18on:1.78.1
 ///FILES ca.p12
 //FILES jetty-logging.properties=jetty.props
