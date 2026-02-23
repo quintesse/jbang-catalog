@@ -8,7 +8,7 @@
 //DEPS org.apache.maven.resolver:maven-resolver-impl:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-connector-basic:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-transport-file:1.8.2
-//DEPS org.apache.maven.resolver:maven-resolver-transport-http:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-transport-http:1.9.27
 
 import java.io.File;
 import java.util.ArrayList;
