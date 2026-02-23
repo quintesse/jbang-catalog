@@ -6,7 +6,7 @@
 //DEPS org.apache.maven.resolver:maven-resolver-api:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-spi:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-impl:1.8.2
-//DEPS org.apache.maven.resolver:maven-resolver-connector-basic:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-connector-basic:1.9.27
 //DEPS org.apache.maven.resolver:maven-resolver-transport-file:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-transport-http:1.8.2
 
