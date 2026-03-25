@@ -65,6 +65,10 @@
     },
     "terminal": {
       "script-ref": "terminal.java"
+    },
+    "xecho": {
+      "script-ref": "echo@quintesse",
+      "description": "Test to see how a ref to another alias works"
     }
   },
   "description": "Quintesse\u0027s experimental Jbang scripts"
