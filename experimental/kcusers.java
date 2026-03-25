@@ -5,7 +5,7 @@
  */
 
 //DEPS org.keycloak:keycloak-admin-client:9.0.3
-//DEPS org.jboss.resteasy:resteasy-client:4.5.2.Final
+//DEPS org.jboss.resteasy:resteasy-client:4.7.10.Final
 
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.*;
