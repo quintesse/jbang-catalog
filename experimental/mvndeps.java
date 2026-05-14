@@ -4,7 +4,7 @@
 //DEPS org.apache.maven:maven-settings-builder:3.8.6
 //DEPS org.apache.maven:maven-resolver-provider:3.9.12
 //DEPS org.apache.maven.resolver:maven-resolver-api:1.8.2
-//DEPS org.apache.maven.resolver:maven-resolver-spi:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-spi:1.9.27
 //DEPS org.apache.maven.resolver:maven-resolver-impl:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-connector-basic:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-transport-file:1.8.2
