@@ -8,6 +8,7 @@ import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandResult;
 import org.aesh.command.invocation.CommandInvocation;
+import org.aesh.command.option.Argument;
 import org.aesh.command.option.Arguments;
 import org.aesh.command.option.Option;
 import org.aesh.command.settings.Settings;
@@ -79,7 +80,7 @@ public class ijq {
         public LazyJsonItem(Path origin) {
             this.origin = origin;
         }
-        
+
         @Override
         public JsonElement getValue() {
             if (!loaded) {
@@ -261,19 +262,11 @@ public class ijq {
     @CommandDefinition(name = "load", description = "Load JSON from a file")
     public static class LoadCommand implements Command {
         
-        @Arguments(arity = "0..*", description = "Path to JSON file")
-        private List<String> args;
+        @Argument(description = "Path to JSON file", required = true)
+        private Path path;
         
         @Override
         public CommandResult execute(CommandInvocation invocation) {
-            if (args == null || args.isEmpty()) {
-                invocation.println("Error: Please provide a file path");
-                return CommandResult.FAILURE;
-            }
-            
-            String pathStr = String.join(" ", args);
-            Path path = Paths.get(pathStr);
-            
             if (!Files.exists(path)) {
                 invocation.println("Error: File not found: " + path);
                 return CommandResult.FAILURE;
@@ -286,8 +279,9 @@ public class ijq {
             
             try {
                 String content = Files.readString(path);
-                JsonElement element = JsonParser.parseString(content);
-                
+                JsonItem json = new LazyJsonItem(path);
+                JsonElement element = json.getValue();
+
                 List<JsonItem> items = new ArrayList<>();
                 if (element.isJsonArray()) {
                     JsonArray array = element.getAsJsonArray();
@@ -295,7 +289,7 @@ public class ijq {
                         items.add(new DirectJsonItem(elem));
                     }
                 } else {
-                    items.add(new DirectJsonItem(element));
+                    items.add(json);
                 }
                 
                 Selection newSelection = selectionManager.createSelection(items);
@@ -316,8 +310,8 @@ public class ijq {
     @CommandDefinition(name = "scan", description = "Scan and load JSON files matching a pattern")
     public static class ScanCommand implements Command {
         
-        @Arguments(arity = "0..*", description = "Path pattern (supports globbing)")
-        private List<String> args;
+        @Argument(description = "Path pattern (supports globbing)", required = true)
+        private Path path;
         
         private static boolean containsGlobbing(String str) {
             return str.contains("*") || str.contains("?") || 
@@ -327,12 +321,7 @@ public class ijq {
         
         @Override
         public CommandResult execute(CommandInvocation invocation) {
-            if (args == null || args.isEmpty()) {
-                invocation.println("Error: Please provide a path pattern");
-                return CommandResult.FAILURE;
-            }
-            
-            String pattern = String.join(" ", args);
+            String pattern = path.toString();
             List<JsonItem> items = new ArrayList<>();
             
             try {
