@@ -10,6 +10,8 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Arguments;
 import org.aesh.command.option.Option;
+import org.aesh.command.settings.Settings;
+import org.aesh.command.settings.SettingsBuilder;
 import org.aesh.readline.prompt.Prompt;
 
 import com.google.gson.*;
@@ -38,7 +40,11 @@ public class ijq {
         if (args.length > 0) {
             // TODO: Handle command line arguments for initial loading
         }
-        
+
+        Settings settings = SettingsBuilder.builder()
+                .promptSupplier(() -> Prompt.builder().line(selectionManager.getPrompt()).build())
+                .enableExport(false)
+                .build();
         AeshConsoleRunner.builder()
             .command(PrintCommand.class)
             .command(LoadCommand.class)
@@ -47,8 +53,7 @@ public class ijq {
             .command(SetCommand.class)
             .command(UseCommand.class)
             .command(HelpCommand.class)
-            .promptSupplier(() -> Prompt.builder().line(selectionManager.getPrompt()).build())
-            .addExitCommand()
+            .addExitCommand().settings(settings)
             .start();
     }
     

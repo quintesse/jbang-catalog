@@ -5,3 +5,4 @@
 out/
 *.iml
 experimental/telegram-token.sh
+.bob/
