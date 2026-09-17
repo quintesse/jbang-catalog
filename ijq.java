@@ -7,6 +7,7 @@ import org.aesh.AeshConsoleRunner;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandResult;
+import org.aesh.command.impl.completer.FileOptionCompleter;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Arguments;
@@ -278,7 +279,6 @@ public class ijq {
             }
             
             try {
-                String content = Files.readString(path);
                 JsonItem json = new LazyJsonItem(path);
                 JsonElement element = json.getValue();
 
@@ -295,9 +295,6 @@ public class ijq {
                 Selection newSelection = selectionManager.createSelection(items);
                 invocation.println("Loaded " + items.size() + " item(s) into " + newSelection.getId());
                 
-            } catch (IOException e) {
-                invocation.println("Error reading file: " + e.getMessage());
-                return CommandResult.FAILURE;
             } catch (JsonSyntaxException e) {
                 invocation.println("Error parsing JSON: " + e.getMessage());
                 return CommandResult.FAILURE;
@@ -310,8 +307,8 @@ public class ijq {
     @CommandDefinition(name = "scan", description = "Scan and load JSON files matching a pattern")
     public static class ScanCommand implements Command {
         
-        @Argument(description = "Path pattern (supports globbing)", required = true)
-        private Path path;
+        @Argument(description = "Path pattern (supports globbing)", required = true, completer = FileOptionCompleter.class)
+        private String path;
         
         private static boolean containsGlobbing(String str) {
             return str.contains("*") || str.contains("?") || 
@@ -324,71 +321,77 @@ public class ijq {
             String pattern = path.toString();
             List<JsonItem> items = new ArrayList<>();
             
-            try {
-                Path startPath;
-                String globPattern;
-                
-                // Check if pattern contains any globbing characters
-                if (!containsGlobbing(pattern)) {
-                    // No globbing - treat as directory path and append **/*.json for recursive scan
-                    startPath = Paths.get(pattern);
-                    String normalizedPattern = pattern.replaceAll("\\\\", "/");
-                    // Handle trailing path separator
-                    normalizedPattern = normalizedPattern.endsWith("/")
-                        ? normalizedPattern.substring(0, normalizedPattern.length() - 1)
-                        : normalizedPattern;
-                    globPattern = normalizedPattern + "/**.json";
+            Path startPath;
+            String globPattern;
+
+            // Check if pattern contains any globbing characters
+            if (!containsGlobbing(pattern)) {
+                // No globbing - treat as directory path and append **/*.json for recursive scan
+                startPath = Paths.get(pattern);
+                String normalizedPattern = pattern.replaceAll("\\\\", "/");
+                // Handle trailing path separator
+                normalizedPattern = normalizedPattern.endsWith("/")
+                    ? normalizedPattern.substring(0, normalizedPattern.length() - 1)
+                    : normalizedPattern;
+                globPattern = normalizedPattern + "/**.json";
+            } else {
+                // Pattern contains globbing - find longest prefix without globbing
+                String separator = pattern.contains("/") ? "/" : "\\";
+                String[] parts = pattern.split("[/\\\\]");
+                StringBuilder prefixBuilder = new StringBuilder();
+
+                for (int i = 0; i < parts.length; i++) {
+                    if (containsGlobbing(parts[i])) {
+                        break;
+                    }
+                    if (i > 0) {
+                        prefixBuilder.append(separator);
+                    }
+                    prefixBuilder.append(parts[i]);
+                }
+
+                String prefix = prefixBuilder.toString();
+                if (prefix.isEmpty()) {
+                    startPath = Paths.get(".");
                 } else {
-                    // Pattern contains globbing - find longest prefix without globbing
-                    String separator = pattern.contains("/") ? "/" : "\\";
-                    String[] parts = pattern.split("[/\\\\]");
-                    StringBuilder prefixBuilder = new StringBuilder();
-                    
-                    for (int i = 0; i < parts.length; i++) {
-                        if (containsGlobbing(parts[i])) {
-                            break;
-                        }
-                        if (i > 0) {
-                            prefixBuilder.append(separator);
-                        }
-                        prefixBuilder.append(parts[i]);
-                    }
-                    
-                    String prefix = prefixBuilder.toString();
-                    if (prefix.isEmpty()) {
-                        startPath = Paths.get(".");
-                    } else {
-                        startPath = Paths.get(prefix);
-                    }
-                    globPattern = pattern;
+                    startPath = Paths.get(prefix);
                 }
-                
-                if (!Files.exists(startPath)) {
-                    invocation.println("Error: Base path does not exist: " + startPath);
-                    return CommandResult.FAILURE;
-                }
+                globPattern = pattern;
+            }
 
-                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
+            if (!Files.exists(startPath)) {
+                invocation.println("Error: Base path does not exist: " + startPath);
+                return CommandResult.FAILURE;
+            }
 
-                try (Stream<Path> paths = Files.walk(startPath)) {
-                    List<Path> matchedPaths = paths
-                        .filter(Files::isRegularFile)
-                        .filter(p -> matcher.matches(p))
-                        .collect(Collectors.toList());
-                    
-                    for (Path path : matchedPaths) {
-                        items.add(new LazyJsonItem(path));
-                    }
+            // Normalize the glob pattern to use forward slashes for cross-platform compatibility
+            // TODO: we should be careful, because the user could be using backslashes to escape
+            //  globbing characters. So perhaps we should have improved heuristics, something like:
+            //  if there are any forward slashes any backslash is very likely to be used to escape
+            //  the next character. But what if there are none? Something like "data\*.json" is
+            //  very likely to be a path, but can we think of a heuristic that will work in most
+            //  situations?
+            String normalizedGlobPattern = globPattern.replace("\\", "/");
+
+            PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + normalizedGlobPattern);
+
+            try (Stream<Path> paths = Files.walk(startPath)) {
+                List<Path> matchedPaths = paths
+                    .filter(Files::isRegularFile)
+                    .filter(p -> matcher.matches(p))
+                    .collect(Collectors.toList());
+
+                for (Path path : matchedPaths) {
+                    items.add(new LazyJsonItem(path));
                 }
-                
-                Selection newSelection = selectionManager.createSelection(items);
-                invocation.println("Scanned " + items.size() + " file(s) into " + newSelection.getId());
-                
             } catch (IOException e) {
                 invocation.println("Error scanning files: " + e.getMessage());
                 return CommandResult.FAILURE;
             }
-            
+
+            Selection newSelection = selectionManager.createSelection(items);
+            invocation.println("Scanned " + items.size() + " file(s) into " + newSelection.getId());
+
             return CommandResult.SUCCESS;
         }
     }
