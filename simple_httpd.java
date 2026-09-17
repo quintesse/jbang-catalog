@@ -1,7 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-package scripts;
-
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;

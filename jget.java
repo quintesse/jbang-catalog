@@ -2,8 +2,6 @@
 
 //DEPS com.konghq:unirest-java:3.14.5
 
-package scripts;
-
 import kong.unirest.GetRequest;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;

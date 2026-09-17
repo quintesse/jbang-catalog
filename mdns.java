@@ -2,8 +2,6 @@
 
 //DEPS org.jmdns:jmdns:3.5.7
 
-package scripts;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;

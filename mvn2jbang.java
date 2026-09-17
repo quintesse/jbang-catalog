@@ -1,7 +1,5 @@
 //DEPS org.apache.maven:maven-model:3.9.12
 
-package scripts;
-
 import org.apache.maven.model.*;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;

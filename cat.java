@@ -1,8 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //JAVA 14+
 
-package scripts;
-
 import static java.lang.System.*;
 
 import java.io.IOException;
