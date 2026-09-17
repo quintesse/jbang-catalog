@@ -61,6 +61,10 @@
       "script-ref": "org.apache.netbeans.modules.jackpot30:tool:28.0",
       "main": "org.netbeans.modules.jackpot30.cmdline.Main",
       "description": "Runs Netbeans Jackpot tool for refactoring Java code"
+    },
+    "ijq": {
+      "script-ref": "ijq.java",
+      "description": "An interactive JSON query tool"
     }
   },
   "description": "Quintesse's list of useful JBang scripts!"
