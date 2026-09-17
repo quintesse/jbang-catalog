@@ -313,6 +313,12 @@ public class ijq {
         @Arguments(arity = "0..*", description = "Path pattern (supports globbing)")
         private List<String> args;
         
+        private static boolean containsGlobbing(String str) {
+            return str.contains("*") || str.contains("?") || 
+                   str.contains("[") || str.contains("]") || 
+                   str.contains("{") || str.contains("}");
+        }
+        
         @Override
         public CommandResult execute(CommandInvocation invocation) {
             if (args == null || args.isEmpty()) {
@@ -324,29 +330,55 @@ public class ijq {
             List<JsonItem> items = new ArrayList<>();
             
             try {
-                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
-                Path startPath = Paths.get(".").toAbsolutePath().normalize();
+                Path startPath;
+                String globPattern;
                 
-                // If pattern contains path separators, extract the base directory
-                if (pattern.contains("/") || pattern.contains("\\")) {
-                    String basePath = pattern.substring(0, Math.max(
-                        pattern.lastIndexOf('/'), pattern.lastIndexOf('\\')));
-                    if (!basePath.isEmpty() && !basePath.contains("*") && !basePath.contains("?")) {
-                        startPath = Paths.get(basePath).toAbsolutePath().normalize();
+                // Check if pattern contains any globbing characters
+                if (!containsGlobbing(pattern)) {
+                    // No globbing - treat as directory path and append **/*.json for recursive scan
+                    startPath = Paths.get(pattern);
+                    String normalizedPattern = pattern.replaceAll("\\\\", "/");
+                    // Handle trailing path separator
+                    normalizedPattern = normalizedPattern.endsWith("/")
+                        ? normalizedPattern.substring(0, normalizedPattern.length() - 1)
+                        : normalizedPattern;
+                    globPattern = normalizedPattern + "/**.json";
+                } else {
+                    // Pattern contains globbing - find longest prefix without globbing
+                    String separator = pattern.contains("/") ? "/" : "\\";
+                    String[] parts = pattern.split("[/\\\\]");
+                    StringBuilder prefixBuilder = new StringBuilder();
+                    
+                    for (int i = 0; i < parts.length; i++) {
+                        if (containsGlobbing(parts[i])) {
+                            break;
+                        }
+                        if (i > 0) {
+                            prefixBuilder.append(separator);
+                        }
+                        prefixBuilder.append(parts[i]);
                     }
+                    
+                    String prefix = prefixBuilder.toString();
+                    if (prefix.isEmpty()) {
+                        startPath = Paths.get(".");
+                    } else {
+                        startPath = Paths.get(prefix);
+                    }
+                    globPattern = pattern;
                 }
                 
                 if (!Files.exists(startPath)) {
                     invocation.println("Error: Base path does not exist: " + startPath);
                     return CommandResult.FAILURE;
                 }
-                
+
+                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
+
                 try (Stream<Path> paths = Files.walk(startPath)) {
                     List<Path> matchedPaths = paths
                         .filter(Files::isRegularFile)
-                        .filter(p -> matcher.matches(p) || 
-                               (Files.isDirectory(p.getParent()) && 
-                                p.getFileName().toString().endsWith(".json")))
+                        .filter(p -> matcher.matches(p))
                         .collect(Collectors.toList());
                     
                     for (Path path : matchedPaths) {
