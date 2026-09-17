@@ -1,18 +1,26 @@
-///usr/bin/env jbang "$0" "$@" ; exit $?
+/// usr/bin/env jbang "$0" "$@" ; exit $?
 
 //DEPS org.junit.jupiter:junit-jupiter-engine:5.12.2
 //DEPS org.junit.platform:junit-platform-console:1.12.2
 //DEPS com.google.code.gson:gson:2.14.0
 
 //DEPS ../ijq.java
+//FILES ijqTest.json
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,14 +29,304 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.aesh.command.AeshCommandRuntimeBuilder;
+import org.aesh.command.Command;
+import org.aesh.command.CommandResult;
+import org.aesh.command.CommandRuntime;
+import org.aesh.command.Execution;
+import org.aesh.command.Executor;
+import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.registry.CommandRegistry;
+
 import org.junit.jupiter.api.Test;
 import org.junit.platform.console.ConsoleLauncher;
 
 // JUnit5 Test class for ijq
 public class ijqTest {
 
-    private static JsonElement json(String content) {
-        return JsonParser.parseString(content);
+    // ==================== LoadCommand ====================
+
+    @Test
+    public void testLoadTestFileWithoutPath() throws Exception {
+        Path testFile = materialize("ijqTest.json");
+        assertThrowsExactly(RuntimeException.class, () -> {
+            CommandResult result = parseCommand("load").execute();
+        });
+    }
+
+    @Test
+    public void testLoadTestFile() throws Exception {
+        Path testFile = materialize("ijqTest.json");
+        CommandResult result = parseCommand("load", testFile.toString()).execute();
+        assertTrue(result.isSuccess());
+        assertEquals(3, ijq.selectionManager.getCurrentSelection().size());
+    }
+
+    @Test
+    public void testLoadNonExistentFile() throws Exception {
+        CommandResult result = parseCommand("load", "/nonexistent/file.json").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testLoadDirectory() throws Exception {
+        Path tempDir = Files.createTempDirectory("ijq-test-dir");
+        tempDir.toFile().deleteOnExit();
+        CommandResult result = parseCommand("load", tempDir.toString()).execute();
+        assertFalse(result.isSuccess());
+    }
+
+    // ==================== PrintCommand ====================
+
+    @Test
+    public void testPrintEmptySelection() throws Exception {
+        ijq.selectionManager.createSelection(new ArrayList<>());
+        CommandResult result = parseCommand("print").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testPrintWithItems() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}", "{\"a\": 2}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("print").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testPrintWithDetailsFlag() throws Exception {
+        Path testFile = materialize("ijqTest.json");
+        parseCommand("load", testFile.toString()).execute();
+        CommandResult result = parseCommand("print", "-d").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testPrintWithWhereClause() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}", "{\"a\": 2}", "{\"a\": 3}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("print", "where", "a", ">", "1").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testPrintWithTopClause() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}", "{\"a\": 2}", "{\"a\": 3}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("print", "top", "2").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testPrintWithLimitClause() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}", "{\"a\": 2}", "{\"a\": 3}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("print", "limit", "2").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    // ==================== ScanCommand ====================
+
+    @Test
+    public void testScanNonExistentDirectory() throws Exception {
+        CommandResult result = parseCommand("scan", "/nonexistent/directory").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testScanWithGlobPattern() throws Exception {
+        Path tempDir = Files.createTempDirectory("ijq-test-scan");
+        tempDir.toFile().deleteOnExit();
+        
+        // Create test JSON files
+        Path file1 = tempDir.resolve("test1.json");
+        Path file2 = tempDir.resolve("test2.json");
+        Files.writeString(file1, "{\"id\": 1}");
+        Files.writeString(file2, "{\"id\": 2}");
+        file1.toFile().deleteOnExit();
+        file2.toFile().deleteOnExit();
+        
+        String pattern = tempDir.toString() + "/*.json";
+        CommandResult result = parseCommand("scan", pattern).execute();
+        assertTrue(result.isSuccess());
+        assertEquals(2, ijq.selectionManager.getCurrentSelection().size());
+    }
+
+    @Test
+    public void testScanDirectoryWithoutGlob() throws Exception {
+        Path tempDir = Files.createTempDirectory("ijq-test-scan2");
+        tempDir.toFile().deleteOnExit();
+        
+        Path file1 = tempDir.resolve("test.json");
+        Files.writeString(file1, "{\"id\": 1}");
+        file1.toFile().deleteOnExit();
+        
+        CommandResult result = parseCommand("scan", tempDir.toString()).execute();
+        assertTrue(result.isSuccess());
+        assertTrue(ijq.selectionManager.getCurrentSelection().size() >= 1);
+    }
+
+    // ==================== SelectCommand ====================
+
+    @Test
+    public void testSelectWithoutQuery() throws Exception {
+        CommandResult result = parseCommand("select").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testSelectAll() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}", "{\"a\": 2}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("select", "*").execute();
+        assertTrue(result.isSuccess());
+        assertEquals(2, ijq.selectionManager.getCurrentSelection().size());
+    }
+
+    @Test
+    public void testSelectWithWhereClause() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}", "{\"a\": 2}", "{\"a\": 3}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("select", "*", "where", "a", ">", "1").execute();
+        assertTrue(result.isSuccess());
+        assertEquals(2, ijq.selectionManager.getCurrentSelection().size());
+    }
+
+    @Test
+    public void testSelectSingleField() throws Exception {
+        List<ijq.JsonItem> items = items("{\"name\": \"foo\", \"age\": 30}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("select", "name").execute();
+        assertTrue(result.isSuccess());
+        assertEquals(1, ijq.selectionManager.getCurrentSelection().size());
+    }
+
+    @Test
+    public void testSelectWithInvalidQuery() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("select", "where").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    // ==================== SetCommand ====================
+
+    @Test
+    public void testSetWithoutArguments() throws Exception {
+        CommandResult result = parseCommand("set").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testSetNamedSelection() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("set", "$mydata").execute();
+        assertTrue(result.isSuccess());
+        assertNotNull(ijq.selectionManager.getSelection("$mydata"));
+    }
+
+    @Test
+    public void testSetNamedSelectionWithEquals() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.Selection source = ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("set", "$mydata", "=", source.getId()).execute();
+        assertTrue(result.isSuccess());
+        assertEquals(1, ijq.selectionManager.getSelection("$mydata").size());
+    }
+
+    @Test
+    public void testSetWithInvalidSourceId() throws Exception {
+        CommandResult result = parseCommand("set", "$mydata", "=", "$999").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testSetWithoutDollarSign() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("set", "mydata").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    // ==================== UseCommand ====================
+
+    @Test
+    public void testUseWithoutArguments() throws Exception {
+        CommandResult result = parseCommand("use").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testUseExistingSelection() throws Exception {
+        List<ijq.JsonItem> items1 = items("{\"a\": 1}");
+        List<ijq.JsonItem> items2 = items("{\"b\": 2}");
+        ijq.Selection sel1 = ijq.selectionManager.createSelection(items1);
+        ijq.selectionManager.createSelection(items2);
+        
+        CommandResult result = parseCommand("use", sel1.getId()).execute();
+        assertTrue(result.isSuccess());
+        assertEquals(sel1.getId(), ijq.selectionManager.getCurrentSelection().getId());
+    }
+
+    @Test
+    public void testUseNonExistentSelection() throws Exception {
+        CommandResult result = parseCommand("use", "$999").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testUseWithoutDollarSign() throws Exception {
+        CommandResult result = parseCommand("use", "mydata").execute();
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void testUseNamedSelection() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.selectionManager.createSelection(items);
+        parseCommand("set", "$mydata").execute();
+        
+        List<ijq.JsonItem> items2 = items("{\"b\": 2}");
+        ijq.selectionManager.createSelection(items2);
+        
+        CommandResult result = parseCommand("use", "$mydata").execute();
+        assertTrue(result.isSuccess());
+        assertEquals("$mydata", ijq.selectionManager.getCurrentSelection().getId());
+    }
+
+    // ==================== ListCommand ====================
+
+    @Test
+    public void testListBasic() throws Exception {
+        CommandResult result = parseCommand("list").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testListWithAllFlag() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.selectionManager.createSelection(items);
+        CommandResult result = parseCommand("list", "-a").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void testListShowsNamedSelections() throws Exception {
+        List<ijq.JsonItem> items = items("{\"a\": 1}");
+        ijq.selectionManager.createSelection(items);
+        parseCommand("set", "$mydata").execute();
+        
+        CommandResult result = parseCommand("list").execute();
+        assertTrue(result.isSuccess());
+    }
+
+    // ==================== HelpCommand ====================
+
+    @Test
+    public void testHelpCommand() throws Exception {
+        CommandResult result = parseCommand("help").execute();
+        assertTrue(result.isSuccess());
     }
 
     // ==================== SelectQueryParser ====================
@@ -494,18 +792,65 @@ public class ijqTest {
         assertEquals(1, item.getValue().getAsJsonObject().get("a").getAsInt());
     }
 
+    // ==================== Utility functions and main() ====================
+
+    private static JsonElement json(String content) {
+        return JsonParser.parseString(content);
+    }
+
+    private static Execution<?> parseCommand(String commandName, String... args) {
+        try {
+            CommandRegistry registry = AeshCommandRegistryBuilder.builder().commands(
+                    ijq.HelpCommand.class,
+                    ijq.ListCommand.class,
+                    ijq.LoadCommand.class,
+                    ijq.PrintCommand.class,
+                    ijq.ScanCommand.class,
+                    ijq.SelectCommand.class,
+                    ijq.SetCommand.class,
+                    ijq.UseCommand.class
+            ).create();
+            CommandRuntime runtime = AeshCommandRuntimeBuilder.builder()
+                    .commandRegistry(registry)
+                    .build();
+            Executor<?> executor = runtime.buildExecutor(commandName, args);
+            Execution<?> execution = executor.getExecutions().get(executor.getExecutions().size() - 1);
+            execution.populateCommand();
+            return execution;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse command", e);
+        }
+    }
+
+    // Obtain resource with given name and write it to a temporary file that will be removed when the app exits
+    public Path materialize(String name) {
+        try {
+            Path tempFile = Files.createTempFile("ijq-test-", name);
+            tempFile.toFile().deleteOnExit();
+            try (InputStream is = getClass().getResourceAsStream(name)) {
+                if (is == null) {
+                    throw new RuntimeException("Resource not found: " + name);
+                }
+                Files.copy(is, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return tempFile;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to materialize resource: " + name, e);
+        }
+    }
+
     // Scan the system classpath for tests
     public static void main(final String... args) {
         String cacheJarsMarker = File.separator + "cache" + File.separator + "jars" + File.separator;
         String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
 
         String jarsList = Arrays.stream(classpathEntries)
-        .filter(path -> path.contains(cacheJarsMarker))
-        .reduce((a, b) -> a + File.pathSeparator + b)
-        // Fall back to the full classpath if nothing matched, so tests are
-        // still found even if jbang's cache layout changes in the future.
-        .orElse(String.join(File.pathSeparator, classpathEntries));
+                .filter(path -> path.contains(cacheJarsMarker))
+                .reduce((a, b) -> a + File.pathSeparator + b)
+                // Fall back to the full classpath if nothing matched, so tests are
+                // still found even if jbang's cache layout changes in the future.
+                .orElse(String.join(File.pathSeparator, classpathEntries));
 
-        ConsoleLauncher.main( "execute", "--scan-class-path", "-cp", jarsList); 
+        ConsoleLauncher.main("execute", "--scan-class-path", "-cp", jarsList);
     }
 }

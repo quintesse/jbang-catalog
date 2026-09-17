@@ -28,8 +28,8 @@ import java.util.stream.Stream;
  */
 public class ijq {
     
-    private static SelectionManager selectionManager = new SelectionManager();
-    private static AeshConsoleRunner runner;
+    static SelectionManager selectionManager = new SelectionManager();
+    static AeshConsoleRunner runner;
     
     public static void main(String[] args) throws Exception {
         // Print welcome message
