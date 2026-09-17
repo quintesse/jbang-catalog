@@ -52,6 +52,7 @@ public class ijq {
             .command(SelectCommand.class)
             .command(SetCommand.class)
             .command(UseCommand.class)
+            .command(ListCommand.class)
             .command(HelpCommand.class)
             .addExitCommand().settings(settings)
             .start();
@@ -533,6 +534,53 @@ public class ijq {
         }
     }
     
+    @CommandDefinition(name = "list", description = "List all selections")
+    public static class ListCommand implements Command {
+        
+        @Option(name = "all", shortName = 'a', hasValue = false,
+                description = "Show all selections including numeric ones")
+        private boolean showAll;
+        
+        @Override
+        public CommandResult execute(CommandInvocation invocation) {
+            Map<String, Selection> selections = selectionManager.selections;
+            
+            invocation.println("Available selections:");
+            invocation.println("");
+            
+            boolean foundAny = false;
+            for (Map.Entry<String, Selection> entry : selections.entrySet()) {
+                String id = entry.getKey();
+                Selection selection = entry.getValue();
+                
+                // Skip $$ alias as it's just a pointer to current
+                if (id.equals("$$")) {
+                    continue;
+                }
+                
+                // Skip numeric IDs unless -a flag is set
+                if (!showAll && id.matches("\\$\\d+")) {
+                    continue;
+                }
+                
+                String currentMarker = id.equals(selectionManager.currentId) ? " (current)" : "";
+                invocation.println(String.format("  %s%s", selection, currentMarker));
+                foundAny = true;
+            }
+            
+            if (!foundAny) {
+                if (showAll) {
+                    invocation.println("  No selections available");
+                } else {
+                    invocation.println("  No named selections available");
+                    invocation.println("  Use 'list -a' to show all selections including numeric ones");
+                }
+            }
+            
+            return CommandResult.SUCCESS;
+        }
+    }
+    
     @CommandDefinition(name = "help", description = "Show help information")
     public static class HelpCommand implements Command {
         
@@ -578,6 +626,10 @@ public class ijq {
             invocation.println("");
             invocation.println("  use $name");
             invocation.println("    Switch to a named or numbered selection, making it current");
+            invocation.println("");
+            invocation.println("  list [-a]");
+            invocation.println("    List all named selections");
+            invocation.println("    -a : Show all selections including numeric ones ($1, $2, etc.)");
             invocation.println("");
             invocation.println("  exit");
             invocation.println("    Exit the shell");
