@@ -6,3 +6,7 @@ out/
 *.iml
 experimental/telegram-token.sh
 .bob/
+.baseline-checkout/
+.baseline-metadata/
+.jbang-check-results/
+.github/scripts/__pycache__/

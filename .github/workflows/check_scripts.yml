@@ -1,0 +1,88 @@
+name: Check JBang scripts
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jbang-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  JBANG_VERSION: '0.141.0'
+
+jobs:
+  build:
+    name: JBang build regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: jbangdev/setup-jbang@main
+        with:
+          version: ${{ env.JBANG_VERSION }}
+
+      - name: Check CI helper
+        run: python .github/scripts/test_check_jbang.py
+
+      - name: Check out target commit
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .baseline-checkout
+          persist-credentials: false
+
+      - name: Restore target metadata
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: .baseline-metadata
+          key: jbang-metadata-v1-${{ runner.os }}-${{ env.JBANG_VERSION }}-${{ github.event.pull_request.base.sha }}
+
+      - name: Compile affected scripts and compare failures
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: >-
+          python .github/scripts/check_jbang.py --mode pr
+          --base-root .baseline-checkout --base "$BASE_SHA" --head "$HEAD_SHA"
+          --manifest .baseline-metadata/manifest.json
+          --output .jbang-check-results
+
+      - name: Build baseline inventory
+        if: github.event_name != 'pull_request'
+        run: python .github/scripts/check_jbang.py --mode baseline --output .jbang-check-results
+
+      - name: Prepare baseline metadata
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p .baseline-metadata
+          cp .jbang-check-results/manifest.json .baseline-metadata/manifest.json
+
+      - name: Save baseline metadata
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: .baseline-metadata
+          key: jbang-metadata-v1-${{ runner.os }}-${{ env.JBANG_VERSION }}-${{ github.sha }}
+
+      - name: Upload build report and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jbang-build-results
+          path: .jbang-check-results/
+          retention-days: 30
+          if-no-files-found: warn

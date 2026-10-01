@@ -51,7 +51,12 @@ The test script launches JUnit itself and declares its dependencies and fixture.
 Use it for changes to `ijq`. For other scripts, select a small, relevant smoke
 check after reading their behavior and arguments. Some tools modify files,
 contact external services, or start long-running servers; choose inputs carefully.
-There is no general test workflow in the repository.
+There is no general script test workflow in the repository. The build-only
+`.github/workflows/check_scripts.yml` checks affected JBang scripts on PRs,
+compares failures against the target commit, and inventories baseline metadata
+on `main`. It does not run script main methods. See `.github/scripts/README.md`
+for selection rules, reports, and local commands. The CI helper has focused
+tests: `python .github/scripts/test_check_jbang.py`.
 
 For catalog-only changes, validate JSON and check that local script references
 exist. In PowerShell, JSON parsing can be checked with:
