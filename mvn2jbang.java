@@ -1,4 +1,4 @@
-//DEPS org.apache.maven:maven-model:3.9.12
+//DEPS org.apache.maven:maven-model:3.10.0
 
 import org.apache.maven.model.*;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
