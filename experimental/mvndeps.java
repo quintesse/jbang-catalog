@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS org.apache.maven:maven-model:3.10.0
-//DEPS org.apache.maven:maven-settings:3.9.12
+//DEPS org.apache.maven:maven-settings:3.10.0
 //DEPS org.apache.maven:maven-settings-builder:3.10.0
 //DEPS org.apache.maven:maven-resolver-provider:3.9.12
 //DEPS org.apache.maven.resolver:maven-resolver-api:1.9.27
