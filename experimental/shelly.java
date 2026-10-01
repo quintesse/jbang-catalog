@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//DEPS org.jmdns:jmdns:3.5.7
+//DEPS org.jmdns:jmdns:3.6.3
 //DEPS com.konghq:unirest-java:3.14.5
 //DEPS org.slf4j:slf4j-nop:1.7.36
 //DEPS https://github.com/quintesse/attocli/tree/main#:SNAPSHOT
