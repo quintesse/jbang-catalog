@@ -2,7 +2,7 @@
 
 //DEPS info.picocli:picocli:4.7.7
 //DEPS com.sun.mail:jakarta.mail:1.6.8
-//DEPS com.google.code.gson:gson:2.13.2
+//DEPS com.google.code.gson:gson:2.14.0
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
