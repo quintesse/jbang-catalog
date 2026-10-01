@@ -103,10 +103,34 @@ Adds a Maven project's dependencies to a JBang script
 
 ### redir
 
-Updates directives in JBang scripts
+Lists and updates directives in JBang scripts
 
  ```
  jbang redir@quintesse
+ ```
+
+### runall
+
+Runs multiple commands in parallel. By default the command that is run is `jbang`
+
+ ```
+ jbang runall@quintesse
+ ```
+
+### refactor
+
+Runs Netbeans Jackpot tool for refactoring Java code
+
+ ```
+ jbang refactor@quintesse
+ ```
+
+### ijq
+
+An interactive JSON query tool
+
+ ```
+ jbang ijq@quintesse
  ```
 
 ## Templates
