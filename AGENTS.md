@@ -71,6 +71,11 @@ network downloads of dependencies or JDKs.
 
 ## Branch and README workflow
 
+- All commit messages and PR titles MUST use Conventional Commits:
+  `type(scope): description`, with an optional scope and `!` for breaking changes.
+  Use an appropriate type such as `feat`, `fix`, `docs`, `refactor`, `test`,
+  `ci`, or `chore`. This applies to automated commits and PRs as well.
+  Examples: `fix(ci): upload JBang build logs` and `docs: update README`.
 - GitHub repository: `quintesse/jbang-catalog`.
 - The default branch is `main` (renamed from `master` on 2026-10-01).
   Use `main` for repository-owned raw GitHub URLs and workflow triggers.

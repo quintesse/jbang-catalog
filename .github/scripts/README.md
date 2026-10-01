@@ -57,6 +57,11 @@ Only non-PR runs on `main` publish that cache. All runs upload a summary,
 manifest, and logs as `jbang-build-results`, retained for 30 days. Cache eviction
 does not prevent selective checks.
 
+Download the logs using the link in the job summary, or open the workflow run's
+Summary page and select `jbang-build-results` under Artifacts. The ZIP contains
+the log filenames listed in the report. The upload explicitly includes the
+hidden results directory and fails if no files are found.
+
 Bootstrap the inventory after the workflow is merged:
 
 ```text

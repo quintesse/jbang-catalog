@@ -79,10 +79,19 @@ jobs:
           key: jbang-metadata-v1-${{ runner.os }}-${{ env.JBANG_VERSION }}-${{ github.sha }}
 
       - name: Upload build report and logs
+        id: results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jbang-build-results
           path: .jbang-check-results/
           retention-days: 30
-          if-no-files-found: warn
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - name: Link build logs in summary
+        if: always() && steps.results.outputs.artifact-url != ''
+        env:
+          ARTIFACT_URL: ${{ steps.results.outputs.artifact-url }}
+        run: |
+          printf '\n[Download build report and logs](%s)\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
