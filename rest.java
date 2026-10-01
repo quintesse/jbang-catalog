@@ -2,7 +2,7 @@
 
 //DEPS info.picocli:picocli:4.7.7
 //DEPS com.google.code.gson:gson:2.14.0
-//DEPS org.yaml:snakeyaml:1.30
+//DEPS org.yaml:snakeyaml:1.33
 //DEPS com.konghq:unirest-java:3.14.5
 
 import java.io.File;
