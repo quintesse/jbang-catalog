@@ -7,7 +7,7 @@
 //DEPS org.apache.maven.resolver:maven-resolver-spi:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-impl:1.8.2
 //DEPS org.apache.maven.resolver:maven-resolver-connector-basic:2.0.24
-//DEPS org.apache.maven.resolver:maven-resolver-transport-file:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-transport-file:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-transport-http:1.8.2
 
 import java.io.File;
