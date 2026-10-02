@@ -45,7 +45,7 @@ jobs:
 
       - name: Restore target metadata
         if: github.event_name == 'pull_request'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .baseline-metadata
           key: jbang-metadata-v1-${{ runner.os }}-${{ env.JBANG_VERSION }}-${{ github.event.pull_request.base.sha }}
@@ -73,7 +73,7 @@ jobs:
 
       - name: Save baseline metadata
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .baseline-metadata
           key: jbang-metadata-v1-${{ runner.os }}-${{ env.JBANG_VERSION }}-${{ github.sha }}
