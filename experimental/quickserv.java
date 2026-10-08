@@ -148,13 +148,7 @@ class quickserv implements Callable<Integer> {
             }
         });
 
-        String cmdStr = String.join(" ", cmd);
-        var shCmd = new ArrayList<String>();
-        shCmd.add("sh");
-        shCmd.add("-c");
-        shCmd.add(cmdStr);
-
-        logger.info("Executing: sh -c " + cmdStr + "\"");
+        logger.info("Executing: {}", reqPath);
 
         var pb = new ProcessBuilder(cmd)
             .directory(reqPath.getParent().toAbsolutePath().toFile())
@@ -187,7 +181,7 @@ class quickserv implements Callable<Integer> {
         var outc = acopy(pin, rout, outAlive);
         outc.thenRun(() -> {
                 if (process.isAlive()) {
-                    logger.warn("Terminating command: " + cmdStr);
+                    logger.warn("Terminating command: {}", reqPath);
                     process.destroyForcibly();
                 }
                 close(pin);
@@ -199,12 +193,12 @@ class quickserv implements Callable<Integer> {
             // every 15s if any output was written
             boolean terminated;
             while (!(terminated = process.waitFor(15, TimeUnit.SECONDS)) && outAlive.get()) {
-                logger.debug("Command still alive: " + cmdStr);
+                logger.debug("Command still alive: {}", reqPath);
                 outAlive.set(false);
             }
             // .. and if not, we terminate the command
             if (!terminated) {
-                logger.warn("Terminating command: " + cmdStr);
+                logger.warn("Terminating command: {}", reqPath);
                 process.destroyForcibly();
             }
             // Wait for the in/out copiers to finish their work
