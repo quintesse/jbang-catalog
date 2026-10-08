@@ -1,8 +1,9 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS info.picocli:picocli:4.7.7
 //DEPS org.eclipse.jetty:jetty-server:12.1.14
-//DEPS org.slf4j:slf4j-api:2.0.0-alpha5 org.eclipse.jetty:jetty-slf4j-impl:11.0.7
-//JAVA 9+
+//DEPS org.eclipse.jetty.ee11:jetty-ee11-servlet:12.1.14
+//DEPS org.slf4j:slf4j-api:2.0.17 org.eclipse.jetty:jetty-slf4j-impl:12.1.14
+//JAVA 17+
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -20,18 +21,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.util.resource.PathResource;
+import org.eclipse.jetty.ee11.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -63,9 +61,15 @@ class quickserv implements Callable<Integer> {
 
         var server = new Server(8080);
 
-        Handler execHandler = new AbstractHandler() {
+        ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/");
+        ServletHolder execServlet = new ServletHolder(new HttpServlet() {
             @Override
-            public void handle(String target, Request baseReq, HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
+            protected void service(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
+                String target = req.getPathInfo();
+                if (target == null) {
+                    target = "/";
+                }
                 Path reqPath = directory.resolve(target.substring(1));
                 logger.info("Incoming request for: " + reqPath);
                 if (Files.isDirectory(reqPath)) {
@@ -77,21 +81,19 @@ class quickserv implements Callable<Integer> {
                         .orElse(reqPath);
                 }
                 if (isExecutable(reqPath)) {
-                    req.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement((String)null));
                     boolean noExec = req.getParameterMap().size() == 1 && req.getParameterMap().containsKey("__noexec__");
                     if (!noExec) {
                         execute(reqPath, req, res);
-                        baseReq.setHandled(true);
                     }
                 }
             }
-        };
-        
-        final var filesHandler = new ResourceHandler();
-        filesHandler.setBaseResource(new PathResource(directory));
-        filesHandler.setDirAllowed(true);
-        
-        server.setHandler(new HandlerList(execHandler, filesHandler));
+        });
+        context.addServlet(execServlet, "/*");
+        ServletHolder filesServlet = context.addServlet(DefaultServlet.class, "/");
+        filesServlet.setInitParameter("resourceBase", directory.toAbsolutePath().toString());
+        filesServlet.setInitParameter("dirAllowed", "true");
+
+        server.setHandler(context);
         server.start();
         server.join();
         

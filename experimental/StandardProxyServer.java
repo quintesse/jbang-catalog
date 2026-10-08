@@ -1,18 +1,19 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//JAVA 11+
-//DEPS org.eclipse.jetty:jetty-proxy:12.1.14
+//JAVA 17+
+//DEPS org.eclipse.jetty.ee11:jetty-ee11-proxy:12.1.14
 //DEPS org.eclipse.jetty:jetty-server:12.1.14
-//DEPS org.eclipse.jetty:jetty-servlet:11.0.26
+//DEPS org.eclipse.jetty.ee11:jetty-ee11-servlet:12.1.14
 //DEPS org.eclipse.jetty:jetty-slf4j-impl:12.1.14
 //FILES jetty-logging.properties=jetty.props
 
-import org.eclipse.jetty.proxy.ProxyServlet;
-import org.eclipse.jetty.proxy.ConnectHandler;
+import org.eclipse.jetty.ee11.proxy.ProxyServlet;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.server.handler.ConnectHandler;
+import org.eclipse.jetty.util.Callback;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,12 +27,12 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 /**
- * A standard (forward) proxy server using Jetty 11.
+ * A standard (forward) proxy server using Jetty 12 and Jakarta EE 11.
  * Supports both HTTP and HTTPS (CONNECT requests).
  * Logs the target URL of each incoming request to a separate, randomly named file
  * in the 'request_logs' directory.
- * Includes JBang headers for direct execution (requires Java 11+).
- * Uses jakarta.servlet API as required by Jetty 11.
+ * Includes JBang headers for direct execution (requires Java 17+).
+ * Uses Jakarta Servlet 6.1 as required by Jetty 12.
  */
 public class StandardProxyServer {
 
@@ -72,17 +73,13 @@ public class StandardProxyServer {
      */
     public static class LoggingConnectHandler extends ConnectHandler {
         @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
-                throws ServletException, IOException {
-
-            // The 'target' in ConnectHandler.handle is typically the host:port string
-            // for the CONNECT request.
-            String connectTarget = request.getRequestURI(); // URI contains the host:port
+        protected void handleConnect(Request request, Response response, Callback callback, String target)
+        {
+            String connectTarget = target;
             System.out.println("CONNECT request received for: " + connectTarget); // Console log
             writeUrlToFile("CONNECT " + connectTarget); // Log CONNECT target to file
 
-            // Proceed with the default ConnectHandler behavior (tunneling)
-            super.handle(target, baseRequest, request, response);
+            super.handleConnect(request, response, callback, target);
         }
     }
 
@@ -155,13 +152,8 @@ public class StandardProxyServer {
         // Add the logging proxy servlet to the context
         context.addServlet(proxyServletHolder, "/*");
 
-        // 4. HandlerCollection to chain handlers
-        HandlerCollection handlers = new HandlerCollection();
-        handlers.addHandler(connectHandler); // Handles CONNECT requests first (logs internally)
-        handlers.addHandler(context);        // Handles standard HTTP requests (logs internally)
-
-        // Set the chained handlers for the server
-        server.setHandler(handlers);
+        connectHandler.setHandler(context);
+        server.setHandler(connectHandler);
 
         try {
             // Start the Jetty server
