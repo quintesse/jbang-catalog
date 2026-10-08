@@ -1,8 +1,8 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//JAVA 11+
-//DEPS org.eclipse.jetty:jetty-proxy:12.1.14
+//JAVA 17+
+//DEPS org.eclipse.jetty.ee11:jetty-ee11-proxy:12.1.14
 //DEPS org.eclipse.jetty:jetty-server:12.1.14
-//DEPS org.eclipse.jetty:jetty-servlet:11.0.26
+//DEPS org.eclipse.jetty.ee11:jetty-ee11-servlet:12.1.14
 //DEPS org.eclipse.jetty:jetty-slf4j-impl:12.1.14
 //DEPS org.eclipse.jetty:jetty-client:12.1.14
 //DEPS org.eclipse.jetty:jetty-alpn-client:12.1.14
@@ -27,23 +27,21 @@ import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpClientTransport;
-import org.eclipse.jetty.client.dynamic.HttpClientTransportDynamic;
+import org.eclipse.jetty.client.transport.HttpClientTransportDynamic;
 import org.eclipse.jetty.io.ClientConnector;
-import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.api.Request.Listener;
-import org.eclipse.jetty.client.util.InputStreamResponseListener;
+import org.eclipse.jetty.client.ContentResponse;
+import org.eclipse.jetty.client.Request.Listener;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.EndPoint;
 import org.eclipse.jetty.io.EofException;
-import org.eclipse.jetty.proxy.ProxyServlet;
+import org.eclipse.jetty.ee11.proxy.ProxyServlet;
 import org.eclipse.jetty.server.*;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
+import org.eclipse.jetty.server.handler.ConnectHandler;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.Promise;
@@ -265,8 +263,17 @@ public class MitmProxyServer {
     /**
      * Custom ConnectHandler that performs MitM for HTTPS.
      */
-    public static class MitmConnectHandler extends AbstractHandler {
+    public static class MitmConnectHandler extends ConnectHandler {
 
+        @Override
+        protected void handleConnect(Request request, org.eclipse.jetty.server.Response response, Callback callback, String target)
+        {
+            LOG.info("CONNECT request received for: {}", target);
+            writeUrlToFile("CONNECT " + target);
+            super.handleConnect(request, response, callback, target);
+        }
+
+        /*
         @Override
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
                 throws IOException, ServletException {
@@ -395,6 +402,7 @@ public class MitmProxyServer {
                 throw new ServletException("Tunnel setup failed", e);
             }
         }
+        */
     }
 
 
@@ -445,12 +453,8 @@ public class MitmProxyServer {
         ServletHolder proxyServletHolder = new ServletHolder(new LoggingProxyServlet());
         context.addServlet(proxyServletHolder, "/*");
 
-        // 3. HandlerCollection to chain handlers
-        HandlerCollection handlers = new HandlerCollection();
-        handlers.addHandler(connectHandler); // Handles CONNECT requests first
-        handlers.addHandler(context);        // Handles standard HTTP requests if not CONNECT
-
-        server.setHandler(handlers);
+        connectHandler.setHandler(context);
+        server.setHandler(connectHandler);
 
         try {
             server.start();
