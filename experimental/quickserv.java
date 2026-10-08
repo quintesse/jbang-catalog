@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -23,13 +24,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.ee11.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.FilterHolder;
 import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -63,14 +69,25 @@ class quickserv implements Callable<Integer> {
 
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
-        ServletHolder execServlet = new ServletHolder(new HttpServlet() {
+        FilterHolder execFilter = new FilterHolder(new Filter() {
             @Override
-            protected void service(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
-                String target = req.getPathInfo();
-                if (target == null) {
-                    target = "/";
+            public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
+                    throws IOException, ServletException {
+                HttpServletRequest req = (HttpServletRequest) servletRequest;
+                HttpServletResponse res = (HttpServletResponse) servletResponse;
+                Path root = directory.toAbsolutePath().normalize();
+                Path reqPath = root.resolve(req.getRequestURI().substring(req.getContextPath().length() + 1)).normalize();
+                if (!reqPath.startsWith(root)) {
+                    res.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
                 }
-                Path reqPath = directory.resolve(target.substring(1));
+                if (Files.exists(reqPath)) {
+                    reqPath = reqPath.toRealPath();
+                    if (!reqPath.startsWith(root)) {
+                        res.sendError(HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+                }
                 logger.info("Incoming request for: " + reqPath);
                 if (Files.isDirectory(reqPath)) {
                     reqPath = Files.find(reqPath, 1, (path, attrs) -> {
@@ -84,11 +101,13 @@ class quickserv implements Callable<Integer> {
                     boolean noExec = req.getParameterMap().size() == 1 && req.getParameterMap().containsKey("__noexec__");
                     if (!noExec) {
                         execute(reqPath, req, res);
+                        return;
                     }
                 }
+                chain.doFilter(req, res);
             }
         });
-        context.addServlet(execServlet, "/*");
+        context.addFilter(execFilter, "/*", EnumSet.of(DispatcherType.REQUEST));
         ServletHolder filesServlet = context.addServlet(DefaultServlet.class, "/");
         filesServlet.setInitParameter("resourceBase", directory.toAbsolutePath().toString());
         filesServlet.setInitParameter("dirAllowed", "true");
