@@ -8,7 +8,7 @@
 //DEPS org.apache.maven.resolver:maven-resolver-impl:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-connector-basic:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-transport-file:2.0.24
-//DEPS org.apache.maven.resolver:maven-resolver-transport-http:2.0.24
+//DEPS org.apache.maven.resolver:maven-resolver-transport-apache:2.0.24
 
 import java.io.File;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.transport.file.FileTransporterFactory;
-import org.eclipse.aether.transport.http.HttpTransporterFactory;
+import org.eclipse.aether.transport.apache.ApacheTransporterFactory;
 import org.eclipse.aether.util.artifact.JavaScopes;
 
 public class mvndeps {
@@ -88,7 +88,7 @@ public class mvndeps {
                 .addService(TransporterFactory.class,
                         FileTransporterFactory.class)
                 .addService(TransporterFactory.class,
-                        HttpTransporterFactory.class);
+                        ApacheTransporterFactory.class);
 		return locator.getService(RepositorySystem.class);
     }
 
