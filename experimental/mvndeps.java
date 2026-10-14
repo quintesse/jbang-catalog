@@ -5,10 +5,10 @@
 //DEPS org.apache.maven:maven-resolver-provider:3.9.12
 //DEPS org.apache.maven.resolver:maven-resolver-api:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-spi:2.0.24
-//DEPS org.apache.maven.resolver:maven-resolver-impl:1.8.2
-//DEPS org.apache.maven.resolver:maven-resolver-connector-basic:1.8.2
-//DEPS org.apache.maven.resolver:maven-resolver-transport-file:1.8.2
-//DEPS org.apache.maven.resolver:maven-resolver-transport-http:1.8.2
+//DEPS org.apache.maven.resolver:maven-resolver-impl:2.0.24
+//DEPS org.apache.maven.resolver:maven-resolver-connector-basic:2.0.24
+//DEPS org.apache.maven.resolver:maven-resolver-transport-file:2.0.24
+//DEPS org.apache.maven.resolver:maven-resolver-transport-http:2.0.24
 
 import java.io.File;
 import java.util.ArrayList;
