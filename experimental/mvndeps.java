@@ -2,7 +2,7 @@
 //DEPS org.apache.maven:maven-model:3.10.0
 //DEPS org.apache.maven:maven-settings:3.10.0
 //DEPS org.apache.maven:maven-settings-builder:3.10.0
-//DEPS org.apache.maven:maven-resolver-provider:3.9.12
+//DEPS org.apache.maven:maven-resolver-provider:3.10.0
 //DEPS org.apache.maven.resolver:maven-resolver-api:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-spi:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-util:2.0.24
