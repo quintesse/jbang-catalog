@@ -1,8 +1,9 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS info.picocli:picocli:4.7.7
-//DEPS org.eclipse.jetty:jetty-server:11.0.26
-//DEPS org.slf4j:slf4j-api:2.0.0-alpha5 org.eclipse.jetty:jetty-slf4j-impl:11.0.7
-//JAVA 9+
+//DEPS org.eclipse.jetty:jetty-server:12.1.14
+//DEPS org.eclipse.jetty.ee11:jetty-ee11-servlet:12.1.14
+//DEPS org.slf4j:slf4j-api:2.0.17 org.eclipse.jetty:jetty-slf4j-impl:12.1.14
+//JAVA 17+
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -14,24 +15,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.util.resource.PathResource;
+import org.eclipse.jetty.ee11.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.FilterHolder;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -63,10 +67,27 @@ class quickserv implements Callable<Integer> {
 
         var server = new Server(8080);
 
-        Handler execHandler = new AbstractHandler() {
+        ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/");
+        FilterHolder execFilter = new FilterHolder(new Filter() {
             @Override
-            public void handle(String target, Request baseReq, HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
-                Path reqPath = directory.resolve(target.substring(1));
+            public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
+                    throws IOException, ServletException {
+                HttpServletRequest req = (HttpServletRequest) servletRequest;
+                HttpServletResponse res = (HttpServletResponse) servletResponse;
+                Path root = directory.toAbsolutePath().normalize();
+                Path reqPath = root.resolve(req.getRequestURI().substring(req.getContextPath().length() + 1)).normalize();
+                if (!reqPath.startsWith(root)) {
+                    res.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+                if (Files.exists(reqPath)) {
+                    reqPath = reqPath.toRealPath();
+                    if (!reqPath.startsWith(root)) {
+                        res.sendError(HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+                }
                 logger.info("Incoming request for: " + reqPath);
                 if (Files.isDirectory(reqPath)) {
                     reqPath = Files.find(reqPath, 1, (path, attrs) -> {
@@ -77,21 +98,21 @@ class quickserv implements Callable<Integer> {
                         .orElse(reqPath);
                 }
                 if (isExecutable(reqPath)) {
-                    req.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement((String)null));
                     boolean noExec = req.getParameterMap().size() == 1 && req.getParameterMap().containsKey("__noexec__");
                     if (!noExec) {
                         execute(reqPath, req, res);
-                        baseReq.setHandled(true);
+                        return;
                     }
                 }
+                chain.doFilter(req, res);
             }
-        };
-        
-        final var filesHandler = new ResourceHandler();
-        filesHandler.setBaseResource(new PathResource(directory));
-        filesHandler.setDirAllowed(true);
-        
-        server.setHandler(new HandlerList(execHandler, filesHandler));
+        });
+        context.addFilter(execFilter, "/*", EnumSet.of(DispatcherType.REQUEST));
+        ServletHolder filesServlet = context.addServlet(DefaultServlet.class, "/");
+        filesServlet.setInitParameter("resourceBase", directory.toAbsolutePath().toString());
+        filesServlet.setInitParameter("dirAllowed", "true");
+
+        server.setHandler(context);
         server.start();
         server.join();
         
@@ -127,13 +148,7 @@ class quickserv implements Callable<Integer> {
             }
         });
 
-        String cmdStr = String.join(" ", cmd);
-        var shCmd = new ArrayList<String>();
-        shCmd.add("sh");
-        shCmd.add("-c");
-        shCmd.add(cmdStr);
-
-        logger.info("Executing: sh -c " + cmdStr + "\"");
+        logger.info("Executing: {}", reqPath);
 
         var pb = new ProcessBuilder(cmd)
             .directory(reqPath.getParent().toAbsolutePath().toFile())
@@ -166,7 +181,7 @@ class quickserv implements Callable<Integer> {
         var outc = acopy(pin, rout, outAlive);
         outc.thenRun(() -> {
                 if (process.isAlive()) {
-                    logger.warn("Terminating command: " + cmdStr);
+                    logger.warn("Terminating command: {}", reqPath);
                     process.destroyForcibly();
                 }
                 close(pin);
@@ -178,12 +193,12 @@ class quickserv implements Callable<Integer> {
             // every 15s if any output was written
             boolean terminated;
             while (!(terminated = process.waitFor(15, TimeUnit.SECONDS)) && outAlive.get()) {
-                logger.debug("Command still alive: " + cmdStr);
+                logger.debug("Command still alive: {}", reqPath);
                 outAlive.set(false);
             }
             // .. and if not, we terminate the command
             if (!terminated) {
-                logger.warn("Terminating command: " + cmdStr);
+                logger.warn("Terminating command: {}", reqPath);
                 process.destroyForcibly();
             }
             // Wait for the in/out copiers to finish their work

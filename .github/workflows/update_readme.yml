@@ -19,7 +19,7 @@ jobs:
           jbang catalog2readme@jbangdev -l ${{ github.repository }} > README.md
     
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "docs: Update README"
           title: "docs: update README"
