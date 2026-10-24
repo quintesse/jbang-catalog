@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS org.aesh:aesh:3.18.0 org.aesh:readline:3.18.0
-//DEPS com.google.code.gson:gson:2.14.0
+//DEPS com.google.code.gson:gson:2.15.0
 //JAVA 17+
 
 import org.aesh.AeshConsoleRunner;
