@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 
-//DEPS org.jmdns:jmdns:3.6.4
+//DEPS org.jmdns:jmdns:3.6.5
 
 import java.io.IOException;
 import java.net.InetAddress;
