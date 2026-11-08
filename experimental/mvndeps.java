@@ -10,7 +10,7 @@
 //DEPS org.apache.maven.resolver:maven-resolver-connector-basic:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-transport-file:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-transport-apache:2.0.24
-//DEPS org.apache.maven.resolver:maven-resolver-supplier-mvn3:2.0.24
+//DEPS org.apache.maven.resolver:maven-resolver-supplier-mvn3:2.0.25
 
 import java.io.File;
 import java.util.ArrayList;
