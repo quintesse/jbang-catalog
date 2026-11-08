@@ -6,7 +6,7 @@
 //DEPS org.apache.maven.resolver:maven-resolver-api:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-spi:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-util:2.0.24
-//DEPS org.apache.maven.resolver:maven-resolver-impl:2.0.24
+//DEPS org.apache.maven.resolver:maven-resolver-impl:2.0.25
 //DEPS org.apache.maven.resolver:maven-resolver-connector-basic:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-transport-file:2.0.24
 //DEPS org.apache.maven.resolver:maven-resolver-transport-apache:2.0.24
